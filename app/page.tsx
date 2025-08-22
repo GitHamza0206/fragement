@@ -13,7 +13,7 @@ import { useAuth } from '@/lib/auth'
 import { Message, toAISDKMessages, toMessageImage } from '@/lib/messages'
 import { LLMModelConfig } from '@/lib/models'
 import modelsList from '@/lib/models.json'
-import { FragmentSchema, fragmentSchema as schema } from '@/lib/schema'
+import { FragmentSchema, fragmentSchema as schema, ClarificationFormSchema, clarificationFormSchema } from '@/lib/schema'
 import { supabase } from '@/lib/supabase'
 import templates, { TemplateId } from '@/lib/templates'
 import { ExecutionResult } from '@/lib/types'
@@ -42,6 +42,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([])
   const [fragment, setFragment] = useState<DeepPartial<FragmentSchema>>()
   const [needsClarification, setNeedsClarification] = useState(false)
+  const [clarifyForm, setClarifyForm] = useState<ClarificationFormSchema | undefined>()
   const [currentTab, setCurrentTab] = useState<'code' | 'fragment'>('code')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [isAuthDialogOpen, setAuthDialog] = useState(false)
@@ -144,6 +145,25 @@ export default function Home() {
       setNeedsClarification(true)
     }
   }, [object?.needs_clarification])
+
+  // When clarification is needed, ask LLM to generate a dynamic form
+  const { object: clarifyObject, submit: requestClarifyForm, isLoading: isClarifyLoading } = useObject<ClarificationFormSchema>({
+    api: '/api/clarify',
+    schema: clarificationFormSchema,
+    onFinish: async ({ object }) => {
+      setClarifyForm(object as unknown as ClarificationFormSchema)
+    },
+  })
+
+  useEffect(() => {
+    if (needsClarification && messages.length > 0) {
+      requestClarifyForm({
+        messages: toAISDKMessages(messages),
+        model: currentModel,
+        config: languageModel,
+      } as any)
+    }
+  }, [needsClarification])
 
   useEffect(() => {
     if (error) stop()
@@ -309,10 +329,11 @@ export default function Home() {
 
           <ClarificationForm
             visible={needsClarification}
-            isLoading={isLoading}
+            isLoading={isLoading || isClarifyLoading}
             onCancel={() => setNeedsClarification(false)}
+            schema={clarifyForm}
             onSubmit={(clarification) => {
-              const content: Message['content'] = [{ type: 'text', text: clarification }]
+              const content: Message['content'] = [{ type: 'text', text: typeof clarification === 'string' ? clarification : String(clarification) }]
               const updated = addMessage({ role: 'user', content })
               submit({
                 userID: session?.user?.id,
@@ -323,6 +344,7 @@ export default function Home() {
                 config: languageModel,
               })
               setNeedsClarification(false)
+              setClarifyForm(undefined)
             }}
           />
           
