@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
   const limit = !config.apiKey
     ? await ratelimit(
-        req.headers.get('x-forwarded-for'),
+        req.headers.get('x-forwarded-for'), 
         rateLimitMaxRequests,
         ratelimitWindow,
       )
@@ -67,12 +67,14 @@ export async function POST(req: Request) {
   try {
     const stream = await streamObject({
       model: modelClient as LanguageModel,
-      schema,
+      schema: schema,
       system: toPrompt(template),
       messages,
       maxRetries: 0, // do not retry on errors
       ...modelParams,
     })
+
+    console.log('stream', stream)
 
     return stream.toTextStreamResponse()
   } catch (error: any) {
@@ -82,6 +84,7 @@ export async function POST(req: Request) {
       error && (error.statusCode === 529 || error.statusCode === 503)
     const isAccessDeniedError =
       error && (error.statusCode === 403 || error.statusCode === 401)
+
 
     if (isRateLimitError) {
       return new Response(
@@ -109,6 +112,7 @@ export async function POST(req: Request) {
         },
       )
     }
+
 
     console.error('Error:', error)
 

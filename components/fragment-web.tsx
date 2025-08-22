@@ -18,15 +18,19 @@ export function FragmentWeb({ result }: { result: ExecutionResultWeb }) {
     setIframeKey((prevKey) => prevKey + 1)
   }
 
+  console.log(result.url)
+
   return (
+    
     <div className="flex flex-col w-full h-full">
       <iframe
         key={iframeKey}
         className="h-full w-full"
-        sandbox="allow-forms allow-scripts allow-same-origin"
+        sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals allow-downloads allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
         loading="lazy"
         src={result.url}
       />
+      
       <div className="p-2 border-t">
         <div className="flex items-center bg-muted dark:bg-white/10 rounded-2xl">
           <TooltipProvider>

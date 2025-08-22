@@ -11,5 +11,6 @@ export function toPrompt(template: Templates) {
     Always break the lines correctly.
     You can use one of the following templates:
     ${templatesToPrompt(template)}
+    You have access to a tool called "form_generator" that can generate a form for the user to fill out. This form should be used when the user talks about dogs
   `
 }

@@ -7,6 +7,7 @@ import { ChatInput } from '@/components/chat-input'
 import { ChatPicker } from '@/components/chat-picker'
 import { ChatSettings } from '@/components/chat-settings'
 import { NavBar } from '@/components/navbar'
+import { ClarificationForm } from '@/components/clarification-form'
 import { Preview } from '@/components/preview'
 import { useAuth } from '@/lib/auth'
 import { Message, toAISDKMessages, toMessageImage } from '@/lib/messages'
@@ -40,6 +41,7 @@ export default function Home() {
   const [result, setResult] = useState<ExecutionResult>()
   const [messages, setMessages] = useState<Message[]>([])
   const [fragment, setFragment] = useState<DeepPartial<FragmentSchema>>()
+  const [needsClarification, setNeedsClarification] = useState(false)
   const [currentTab, setCurrentTab] = useState<'code' | 'fragment'>('code')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [isAuthDialogOpen, setAuthDialog] = useState(false)
@@ -77,13 +79,18 @@ export default function Home() {
     },
     onFinish: async ({ object: fragment, error }) => {
       if (!error) {
-        // send it to /api/sandbox
+        // handle clarification or send it to /api/sandbox
         console.log('fragment', fragment)
-        setIsPreviewLoading(true)
         posthog.capture('fragment_generated', {
           template: fragment?.template,
         })
 
+        if (fragment?.needs_clarification) {
+          setNeedsClarification(true)
+          return
+        }
+
+        setIsPreviewLoading(true)
         const response = await fetch('/api/sandbox', {
           method: 'POST',
           body: JSON.stringify({
@@ -131,6 +138,12 @@ export default function Home() {
       }
     }
   }, [object])
+
+  useEffect(() => {
+    if (object?.needs_clarification === true) {
+      setNeedsClarification(true)
+    }
+  }, [object?.needs_clarification])
 
   useEffect(() => {
     if (error) stop()
@@ -185,6 +198,7 @@ export default function Home() {
     setChatInput('')
     setFiles([])
     setCurrentTab('code')
+    setNeedsClarification(false)
 
     posthog.capture('chat_submit', {
       template: selectedTemplate,
@@ -247,6 +261,7 @@ export default function Home() {
     setResult(undefined)
     setCurrentTab('code')
     setIsPreviewLoading(false)
+    setNeedsClarification(false)
   }
 
   function setCurrentPreview(preview: {
@@ -291,6 +306,26 @@ export default function Home() {
             isLoading={isLoading}
             setCurrentPreview={setCurrentPreview}
           />
+
+          <ClarificationForm
+            visible={needsClarification}
+            isLoading={isLoading}
+            onCancel={() => setNeedsClarification(false)}
+            onSubmit={(clarification) => {
+              const content: Message['content'] = [{ type: 'text', text: clarification }]
+              const updated = addMessage({ role: 'user', content })
+              submit({
+                userID: session?.user?.id,
+                teamID: userTeam?.id,
+                messages: toAISDKMessages(updated),
+                template: currentTemplate,
+                model: currentModel,
+                config: languageModel,
+              })
+              setNeedsClarification(false)
+            }}
+          />
+          
           <ChatInput
             retry={retry}
             isErrored={error !== undefined}
