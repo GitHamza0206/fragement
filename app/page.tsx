@@ -307,24 +307,6 @@ export default function Home() {
             setCurrentPreview={setCurrentPreview}
           />
 
-          <ClarificationForm
-            visible={needsClarification}
-            isLoading={isLoading}
-            onCancel={() => setNeedsClarification(false)}
-            onSubmit={(clarification) => {
-              const content: Message['content'] = [{ type: 'text', text: clarification }]
-              const updated = addMessage({ role: 'user', content })
-              submit({
-                userID: session?.user?.id,
-                teamID: userTeam?.id,
-                messages: toAISDKMessages(updated),
-                template: currentTemplate,
-                model: currentModel,
-                config: languageModel,
-              })
-              setNeedsClarification(false)
-            }}
-          />
           
           <ChatInput
             retry={retry}
