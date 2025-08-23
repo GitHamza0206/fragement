@@ -7,6 +7,7 @@ import { ChatInput } from '@/components/chat-input'
 import { ChatPicker } from '@/components/chat-picker'
 import { ChatSettings } from '@/components/chat-settings'
 import { NavBar } from '@/components/navbar'
+import { GeneratedClarificationForm } from '@/components/generated-clarification-form'
 import { ClarificationForm } from '@/components/clarification-form'
 import { Preview } from '@/components/preview'
 import { useAuth } from '@/lib/auth'
@@ -17,6 +18,7 @@ import { FragmentSchema, fragmentSchema as schema } from '@/lib/schema'
 import { supabase } from '@/lib/supabase'
 import templates, { TemplateId } from '@/lib/templates'
 import { ExecutionResult } from '@/lib/types'
+import type { GeneratedFormSpec } from '@/lib/clarification'
 import { DeepPartial } from 'ai'
 import { experimental_useObject as useObject } from 'ai/react'
 import { usePostHog } from 'posthog-js/react'
@@ -42,6 +44,8 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([])
   const [fragment, setFragment] = useState<DeepPartial<FragmentSchema>>()
   const [needsClarification, setNeedsClarification] = useState(false)
+  const [generatedFormSpec, setGeneratedFormSpec] = useState<GeneratedFormSpec | null>(null)
+  const [isGeneratingForm, setIsGeneratingForm] = useState(false)
   const [currentTab, setCurrentTab] = useState<'code' | 'fragment'>('code')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [isAuthDialogOpen, setAuthDialog] = useState(false)
@@ -142,6 +146,26 @@ export default function Home() {
   useEffect(() => {
     if (object?.needs_clarification === true) {
       setNeedsClarification(true)
+      if (!isGeneratingForm && !generatedFormSpec) {
+        setIsGeneratingForm(true)
+        const placeholder = 'Add details so I can proceed…'
+        fetch('/api/clarify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            placeholder,
+            model: currentModel,
+            config: languageModel,
+          }),
+        })
+          .then(async (res) => {
+            if (!res.ok) throw new Error('Failed to generate form')
+            const data = await res.json()
+            setGeneratedFormSpec(data.spec)
+          })
+          .catch(() => setGeneratedFormSpec(null))
+          .finally(() => setIsGeneratingForm(false))
+      }
     }
   }, [object?.needs_clarification])
 
@@ -307,24 +331,53 @@ export default function Home() {
             setCurrentPreview={setCurrentPreview}
           />
 
-          <ClarificationForm
-            visible={needsClarification}
-            isLoading={isLoading}
-            onCancel={() => setNeedsClarification(false)}
-            onSubmit={(clarification) => {
-              const content: Message['content'] = [{ type: 'text', text: clarification }]
-              const updated = addMessage({ role: 'user', content })
-              submit({
-                userID: session?.user?.id,
-                teamID: userTeam?.id,
-                messages: toAISDKMessages(updated),
-                template: currentTemplate,
-                model: currentModel,
-                config: languageModel,
-              })
-              setNeedsClarification(false)
-            }}
-          />
+          {needsClarification && (
+            generatedFormSpec ? (
+              <GeneratedClarificationForm
+                spec={generatedFormSpec}
+                onSubmit={(values) => {
+                  const summary = Object.entries(values)
+                    .map(([k, v]) => `${k}: ${String(v)}`)
+                    .join('\n')
+                  const content: Message['content'] = [{ type: 'text', text: summary }]
+                  const updated = addMessage({ role: 'user', content })
+                  submit({
+                    userID: session?.user?.id,
+                    teamID: userTeam?.id,
+                    messages: toAISDKMessages(updated),
+                    template: currentTemplate,
+                    model: currentModel,
+                    config: languageModel,
+                  })
+                  setNeedsClarification(false)
+                  setGeneratedFormSpec(null)
+                }}
+              />
+            ) : (
+              <ClarificationForm
+                visible={needsClarification}
+                isLoading={isLoading || isGeneratingForm}
+                onCancel={() => {
+                  setNeedsClarification(false)
+                  setGeneratedFormSpec(null)
+                }}
+                onSubmit={(clarification) => {
+                  const content: Message['content'] = [{ type: 'text', text: clarification }]
+                  const updated = addMessage({ role: 'user', content })
+                  submit({
+                    userID: session?.user?.id,
+                    teamID: userTeam?.id,
+                    messages: toAISDKMessages(updated),
+                    template: currentTemplate,
+                    model: currentModel,
+                    config: languageModel,
+                  })
+                  setNeedsClarification(false)
+                  setGeneratedFormSpec(null)
+                }}
+              />
+            )
+          )}
           
           <ChatInput
             retry={retry}
