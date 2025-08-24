@@ -8,6 +8,7 @@ import { ChatPicker } from '@/components/chat-picker'
 import { ChatSettings } from '@/components/chat-settings'
 import { NavBar } from '@/components/navbar'
 import { ClarificationForm, DynamicClarificationForm } from '@/components/clarification-form'
+import { PlanView } from '@/components/plan-view'
 import { Preview } from '@/components/preview'
 import { useAuth } from '@/lib/auth'
 import { Message, toAISDKMessages, toMessageImage } from '@/lib/messages'
@@ -132,7 +133,7 @@ export default function Home() {
     setFragment(object)
     const content: Message['content'] = [
       { type: 'text', text: object.commentary || '' },
-      { type: 'code', text: object.code || '' },
+      //{ type: 'code', text: object.code || '' },
     ]
 
     setMessages((prev) => {
@@ -356,7 +357,15 @@ export default function Home() {
                   }}
                   onCancel={() => setNeedsClarification(false)}
                 />
-              ) : undefined
+              ) : (
+                fragment?.plan ? (
+                  <PlanView
+                    title={fragment?.title as string}
+                    description={fragment?.description as string}
+                    plan={fragment?.plan as FragmentSchema['plan']}
+                  />
+                ) : undefined
+              )
             }
           />
 
