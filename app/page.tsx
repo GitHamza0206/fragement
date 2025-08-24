@@ -20,8 +20,6 @@ import templates, { TemplateId } from '@/lib/templates'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
 import { experimental_useObject as useObject } from 'ai/react'
-import { useActions, useUIState } from 'ai/rsc'
-import { AI } from '@/app/actions/rsc-chat'
 import { usePostHog } from 'posthog-js/react'
 import { SetStateAction, useEffect, useState, useCallback } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
@@ -78,9 +76,7 @@ export default function Home() {
     return next
   }, [])
 
-  // RSC streaming UI hooks
-  const actions = useActions<typeof AI>()
-  const [ui] = useUIState<typeof AI>()
+  // RSC streaming removed
 
   const { object, submit, isLoading, stop, error } = useObject({
     api: '/api/chat',
@@ -207,14 +203,6 @@ export default function Home() {
     const updatedMessages = addMessage({
       role: 'user',
       content,
-    })
-
-    // Trigger RSC streamUI in parallel for rich, incremental UI
-    void (actions as any).sendMessage({
-      text: chatInput,
-      template: currentTemplate,
-      model: currentModel as any,
-      config: languageModel,
     })
 
     submit({
@@ -368,9 +356,7 @@ export default function Home() {
                   }}
                   onCancel={() => setNeedsClarification(false)}
                 />
-              ) : (
-                ui
-              )
+              ) : undefined
             }
           />
 
