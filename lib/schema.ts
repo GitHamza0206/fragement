@@ -21,6 +21,17 @@ export const clarificationFormSchema = z.object({
   context: z.string().describe('Additional context about why clarification is needed'),
 })
 
+export const planSchema = z.object({
+  title: z.string().describe('Title of the learning plan'),
+  description: z.string().optional().describe('Brief description of the learning plan'),
+  plan: z.array(z.object({
+    module: z.object({
+      module_name: z.string().describe("the module name"),
+      submodule_names: z.array(z.string().describe("name of submodules"))
+    })
+  })).describe('Array of learning modules with their submodules')
+})
+
 export const fragmentSchema = z.object({
   commentary: z.string().describe(`Describe what you're about to do and the steps you want to take for generating the course plan in great detail.`),
   template: z.enum(["streamlit-developer"]).describe('Name of the template used to generate the fragment.'),
@@ -54,4 +65,5 @@ export const fragmentSchema = z.object({
 
 export type ClarificationQuestion = z.infer<typeof clarificationQuestionSchema>
 export type ClarificationForm = z.infer<typeof clarificationFormSchema>
+export type PlanSchema = z.infer<typeof planSchema>
 export type FragmentSchema = z.infer<typeof fragmentSchema>

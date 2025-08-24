@@ -3,8 +3,9 @@ import { ReactNode } from 'react';
 import { openai } from '@ai-sdk/openai';
 import { getModelClient, type LLMModel, type LLMModelConfig } from '@/lib/models';
 import { StreamClarificationForm } from '@/components/clarification-form'
-import { clarificationFormSchema } from '@/lib/schema';
-import type { ClarificationForm } from '@/lib/schema';
+import { PlanView } from '@/components/plan-view'
+import { clarificationFormSchema, planSchema } from '@/lib/schema';
+import type { ClarificationForm, PlanSchema } from '@/lib/schema';
 import { MainSystemPrompt } from '@/lib/prompt';
 
 type ServerMessage = { role: 'user' | 'assistant'; content: string };
@@ -66,6 +67,14 @@ export async function sendMessage(input: SendMessageInput): Promise<UIMessage> {
           return <StreamClarificationForm form={form} model={input.model} config={input.config} />
         },
       },
+      
+      generate_plan: {
+        description: 'Generate a structured learning plan when the AI has enough information to create modules and submodules.',
+        parameters: planSchema,
+        generate: async (planData: PlanSchema) => {
+          return <PlanView title={planData.title} description={planData.description} plan={planData.plan} />
+        },
+      }
     },
   });
 
