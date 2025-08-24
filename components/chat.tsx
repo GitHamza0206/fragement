@@ -1,6 +1,6 @@
 import { LoaderIcon } from 'lucide-react'
 import { useEffect, ReactNode, useRef } from 'react'
-import { Message } from 'ai'
+import { UIMessage } from 'ai'
 import { StreamClarificationForm } from '@/components/clarification-form'
 import { MemoryUpdatePanel } from '@/components/memory-update-panel'
 import { PlanView } from '@/components/plan-view'
@@ -13,7 +13,7 @@ export function Chat({
   sendMessage,
 }: {
   isLoading: boolean
-  messages: Message[]
+  messages: UIMessage[]
   inlineNode?: ReactNode
   sendMessage: (message?: any) => Promise<any>
 }) {
@@ -165,21 +165,28 @@ export function Chat({
       ref={chatContainerRef}
       className="flex flex-col pb-12 gap-2 overflow-y-auto max-h-full"
     >
-      {messages.map((message: Message) => (
+      {messages.map((message: UIMessage) => (
         <div
           className={`flex flex-col px-4 shadow-sm whitespace-pre-wrap ${message.role !== 'user' ? 'bg-accent dark:bg-white/5 border text-accent-foreground dark:text-muted-foreground py-4 rounded-2xl gap-4 w-full' : 'bg-gradient-to-b from-black/5 to-black/10 dark:from-black/30 dark:to-black/50 py-2 rounded-xl gap-2 w-fit'} font-serif`}
           key={message.id}
         >
-          <div>{message.content}</div>
-          
-          {/* Render tool invocations */}
-          {message.toolInvocations && message.toolInvocations.length > 0 && (
-            <div className="mt-2 space-y-2">
-              {message.toolInvocations.map((toolInvocation: any) => 
-                renderToolInvocation(toolInvocation)
-              )}
-            </div>
-          )}
+          <div>
+            {message.parts?.map((part, index) => {
+              if (part.type === 'text') {
+                return <span key={index}>{part.text}</span>
+              }
+              if (part.type.startsWith('tool-') && 'toolCallId' in part && 'state' in part) {
+                const toolName = part.type.replace('tool-', '')
+                return renderToolInvocation({
+                  toolCallId: part.toolCallId,
+                  toolName: toolName,
+                  result: 'output' in part ? part.output : undefined,
+                  state: part.state === 'output-available' ? 'result' : part.state
+                })
+              }
+              return null
+            })}
+          </div>
         </div>
       ))}
       {inlineNode && (
