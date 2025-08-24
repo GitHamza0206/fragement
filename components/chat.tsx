@@ -1,24 +1,13 @@
-import { Message } from '@/lib/messages'
-import { FragmentSchema } from '@/lib/schema'
-import { ExecutionResult } from '@/lib/types'
-import { DeepPartial } from 'ai'
-import { LoaderIcon, Terminal } from 'lucide-react'
+import { LoaderIcon } from 'lucide-react'
 import type { UIMessage } from '@/app/actions/server.action.streamUI'
 import { useEffect, ReactNode } from 'react'
 import { useUIState } from 'ai/rsc'
 
 export function Chat({
-  messages,
   isLoading,
-  setCurrentPreview,
   inlineNode,
 }: {
-  messages: Message[]
   isLoading: boolean
-  setCurrentPreview: (preview: {
-    fragment: DeepPartial<FragmentSchema> | undefined
-    result: ExecutionResult | undefined
-  }) => void
   inlineNode?: ReactNode
 }) {
   const [uiMessages] = useUIState()

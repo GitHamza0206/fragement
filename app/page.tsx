@@ -11,7 +11,7 @@ import { NavBar } from '@/components/navbar'
 // import { PlanView } from '@/components/plan-view'
 import { Preview } from '@/components/preview'
 import { useAuth } from '@/lib/auth'
-import { Message, toMessageImage } from '@/lib/messages'
+import { toMessageImage } from '@/lib/messages'
 import { LLMModelConfig } from '@/lib/models'
 import modelsList from '@/lib/models.json'
 import { FragmentSchema } from '@/lib/schema'
@@ -21,7 +21,7 @@ import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
 // removed useObject in favor of server action via useActions()
 import { usePostHog } from 'posthog-js/react'
-import { SetStateAction, useEffect, useState, useCallback } from 'react'
+import { SetStateAction, useState } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 import { useActions, useUIState } from 'ai/rsc'
 
@@ -41,7 +41,6 @@ export default function Home() {
   const posthog = usePostHog()
 
   const [result, setResult] = useState<ExecutionResult>()
-  const [messages, setMessages] = useState<Message[]>([])
   const [fragment, setFragment] = useState<DeepPartial<FragmentSchema> | undefined>(undefined)
   const [currentTab, setCurrentTab] = useState<'code' | 'fragment'>('code')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
@@ -61,38 +60,7 @@ export default function Home() {
   const currentModel = filteredModels.find(
     (model) => model.id === languageModel.model,
   )
-  const currentTemplate =
-    selectedTemplate === 'auto'
-      ? templates
-      : { [selectedTemplate]: templates[selectedTemplate] }
-  const lastMessage = messages[messages.length - 1]
-
-  const addMessage = useCallback((message: Message) => {
-    let next: Message[] = []
-    setMessages((previousMessages) => {
-      next = [...previousMessages, message]
-      return next
-    })
-    return next
-  }, [])
-
-  // consolidated: use server action via useActions() only
   const [isLoading, setIsLoading] = useState(false)
-  const stop = () => {}
-
-  // removed effects bound to useObject
-
-  function setMessage(message: Partial<Message>, index?: number) {
-    setMessages((previousMessages) => {
-      const updatedMessages = [...previousMessages]
-      updatedMessages[index ?? previousMessages.length - 1] = {
-        ...previousMessages[index ?? previousMessages.length - 1],
-        ...message,
-      }
-
-      return updatedMessages
-    })
-  }
 
   async function handleSubmitAuth(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -104,19 +72,8 @@ export default function Home() {
     // toggle local loading if needed
     if (isLoading) return
 
-    const content: Message['content'] = [{ type: 'text', text: chatInput }]
-    const images = await toMessageImage(files)
-
-    if (images.length > 0) {
-      images.forEach((image) => {
-        content.push({ type: 'image', image })
-      })
-    }
-
-    const updatedMessages = addMessage({
-      role: 'user',
-      content,
-    })
+    // TODO: Handle file uploads for streamUI if needed
+    await toMessageImage(files)
 
     // Render server-action UI stream (clarifications, assistant text UI)
     try {
@@ -147,7 +104,6 @@ export default function Home() {
     })
   }
 
-  function retry() {}
 
   
 
@@ -182,10 +138,8 @@ export default function Home() {
   }
 
   function handleClearChat() {
-    stop()
     setChatInput('')
     setFiles([])
-    setMessages([])
     setResult(undefined)
     setCurrentTab('code')
     setIsPreviewLoading(false)
@@ -201,7 +155,7 @@ export default function Home() {
   }
 
   function handleUndo() {
-    setMessages((previousMessages) => [...previousMessages.slice(0, -2)])
+    setUIState((prev: any[]) => prev.slice(0, -2))
     setCurrentPreview({ fragment: undefined, result: undefined })
   }
 
@@ -225,24 +179,22 @@ export default function Home() {
             signOut={logout}
             onSocialClick={handleSocialClick}
             onClear={handleClearChat}
-            canClear={messages.length > 0}
-            canUndo={messages.length > 1 && !isLoading}
+            canClear={uiMessages.length > 0}
+            canUndo={uiMessages.length > 1 && !isLoading}
             onUndo={handleUndo}
           />
           <Chat
-            messages={messages}
             isLoading={isLoading}
-            setCurrentPreview={setCurrentPreview}
           />
 
           
           <ChatInput
-            retry={retry}
+            retry={() => {}}
             isErrored={false}
             errorMessage={''}
             isLoading={isLoading}
             isRateLimited={false}
-            stop={stop}
+            stop={() => {}}
             input={chatInput}
             handleInputChange={handleSaveInputChange}
             handleSubmit={handleSubmitAuth}
