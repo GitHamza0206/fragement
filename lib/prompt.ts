@@ -24,7 +24,7 @@ export function  MainSystemPrompt() : string {
 
     step1: 
     When you detect that a request is ambiguous or lacks specific details needed for implementation:
-    1. Set needs_clarification: true
+    1. you use te need_clarification tool 
     2. Generate a clarification_form with specific, targeted questions
     3. Use appropriate question types: text, select, multiselect, boolean, number
     4. Focus on technical specifications, frameworks, styling preferences, or implementation details

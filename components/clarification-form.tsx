@@ -3,29 +3,20 @@
 import { useState } from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import { ClarificationForm as ClarificationFormType, ClarificationQuestion } from '@/lib/schema'
+import { useActions, useUIState } from 'ai/rsc'
+import type { LLMModel, LLMModelConfig } from '@/lib/models'
 
-interface DynamicClarificationFormProps {
-  form: ClarificationFormType
-  visible: boolean
-  isLoading?: boolean
-  onSubmit: (answers: Record<string, any>) => void
-  onCancel?: () => void
-}
-
-export function DynamicClarificationForm({
+// New: client-side streamed form that calls the server action via useActions
+export function StreamClarificationForm({
   form,
-  visible,
   isLoading = false,
-  onSubmit,
-  onCancel,
-}: DynamicClarificationFormProps) {
+}: {
+  form: ClarificationFormType
+  isLoading?: boolean
+}) {
   const [answers, setAnswers] = useState<Record<string, any>>({})
-
-  if (!visible) return null
-
-  const handleSubmit = () => {
-    onSubmit(answers)
-  }
+  const { sendMessage } = useActions()
+  const [_, setUIState] = useUIState()
 
   const renderField = (question: ClarificationQuestion) => {
     const value = answers[question.id]
@@ -149,21 +140,16 @@ export function DynamicClarificationForm({
         ))}
 
         <div className="flex gap-2 justify-end pt-2">
-          {onCancel && (
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-lg text-sm border border-primary/20 text-foreground"
-              disabled={isLoading}
-              onClick={onCancel}
-            >
-              Cancel
-            </button>
-          )}
           <button
             type="button"
             className="px-3 py-1.5 rounded-lg text-sm bg-primary/90 text-primary-foreground hover:bg-primary disabled:opacity-60"
             disabled={isLoading || !isValid}
-            onClick={handleSubmit}
+            onClick={async () => {
+              const ui = await sendMessage({
+                text: `Clarification answers: ${JSON.stringify(answers)}`,
+              })
+              setUIState((prev: any[]) => ([...(prev ?? []), ui]))
+            }}
           >
             Submit Clarification
           </button>
@@ -172,70 +158,7 @@ export function DynamicClarificationForm({
     </div>
   )
 }
+// removed legacy ClarificationForm
 
-export function ClarificationForm({
-  title = 'Clarification needed',
-  placeholder = 'Add details so I can proceed…',
-  visible,
-  isLoading = false,
-  onSubmit,
-  onCancel,
-}: {
-  title?: string
-  placeholder?: string
-  visible: boolean
-  isLoading?: boolean
-  onSubmit: (clarification: string) => void
-  onCancel?: () => void
-}) {
-  const [value, setValue] = useState('')
-
-  if (!visible) return null
-
-  return (
-    <div className="mx-4 mb-2 rounded-2xl border border-primary/20 bg-accent/30 dark:bg-white/5 text-accent-foreground dark:text-muted-foreground ring-1 ring-primary/10 shadow-sm">
-      <div className="px-3 pt-3 pb-2">
-        <div className="font-medium text-sm text-foreground">
-          {title}
-        </div>
-        <div className="text-xs text-muted-foreground mt-0.5">
-          The fragment needs more information to continue.
-        </div>
-      </div>
-
-      <div className="px-3 pb-3 flex flex-col gap-2">
-        <TextareaAutosize
-          minRows={2}
-          maxRows={6}
-          className="text-normal px-3 py-2 resize-none ring-0 bg-muted/40 dark:bg-white/5 w-full m-0 outline-none rounded-lg text-foreground dark:text-muted-foreground placeholder:text-muted-foreground"
-          placeholder={placeholder}
-          value={value}
-          disabled={isLoading}
-          onChange={(e) => setValue(e.target.value)}
-        />
-        <div className="flex gap-2 justify-end">
-          {onCancel && (
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-lg text-sm border border-primary/20 text-foreground"
-              disabled={isLoading}
-              onClick={onCancel}
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded-lg text-sm bg-primary/90 text-primary-foreground hover:bg-primary disabled:opacity-60"
-            disabled={isLoading || value.trim().length === 0}
-            onClick={() => onSubmit(value.trim())}
-          >
-            Send clarification
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 
