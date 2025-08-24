@@ -7,20 +7,23 @@ import { ChatInput } from '@/components/chat-input'
 import { ChatPicker } from '@/components/chat-picker'
 import { ChatSettings } from '@/components/chat-settings'
 import { NavBar } from '@/components/navbar'
-import { ClarificationForm } from '@/components/clarification-form'
+import { ClarificationForm, DynamicClarificationForm } from '@/components/clarification-form'
 import { Preview } from '@/components/preview'
 import { useAuth } from '@/lib/auth'
 import { Message, toAISDKMessages, toMessageImage } from '@/lib/messages'
 import { LLMModelConfig } from '@/lib/models'
 import modelsList from '@/lib/models.json'
 import { FragmentSchema, fragmentSchema as schema } from '@/lib/schema'
+import type { ClarificationForm as ClarificationFormType, ClarificationQuestion } from '@/lib/schema'
 import { supabase } from '@/lib/supabase'
 import templates, { TemplateId } from '@/lib/templates'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
 import { experimental_useObject as useObject } from 'ai/react'
+import { useActions, useUIState } from 'ai/rsc'
+import { AI } from '@/app/actions/rsc-chat'
 import { usePostHog } from 'posthog-js/react'
-import { SetStateAction, useEffect, useState } from 'react'
+import { SetStateAction, useEffect, useState, useCallback } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 
 export default function Home() {
@@ -66,6 +69,19 @@ export default function Home() {
       : { [selectedTemplate]: templates[selectedTemplate] }
   const lastMessage = messages[messages.length - 1]
 
+  const addMessage = useCallback((message: Message) => {
+    let next: Message[] = []
+    setMessages((previousMessages) => {
+      next = [...previousMessages, message]
+      return next
+    })
+    return next
+  }, [])
+
+  // RSC streaming UI hooks
+  const actions = useActions<typeof AI>()
+  const [ui] = useUIState<typeof AI>()
+
   const { object, submit, isLoading, stop, error } = useObject({
     api: '/api/chat',
     schema,
@@ -87,7 +103,7 @@ export default function Home() {
 
         if (fragment?.needs_clarification) {
           setNeedsClarification(true)
-          return
+          return 
         }
 
         setIsPreviewLoading(true)
@@ -115,28 +131,35 @@ export default function Home() {
   })
 
   useEffect(() => {
-    if (object) {
-      setFragment(object)
-      const content: Message['content'] = [
-        { type: 'text', text: object.commentary || '' },
-        { type: 'code', text: object.code || '' },
-      ]
+    if (!object) return
 
-      if (!lastMessage || lastMessage.role !== 'assistant') {
-        addMessage({
-          role: 'assistant',
-          content,
-          object,
-        })
-      }
+    setFragment(object)
+    const content: Message['content'] = [
+      { type: 'text', text: object.commentary || '' },
+      { type: 'code', text: object.code || '' },
+    ]
 
-      if (lastMessage && lastMessage.role === 'assistant') {
-        setMessage({
-          content,
-          object,
-        })
+    setMessages((prev) => {
+      const last = prev[prev.length - 1]
+      if (!last || last.role !== 'assistant') {
+        return [
+          ...prev,
+          {
+            role: 'assistant',
+            content,
+            object,
+          },
+        ]
       }
-    }
+      // update last assistant message in place
+      const next = [...prev]
+      next[next.length - 1] = {
+        ...next[next.length - 1],
+        content,
+        object,
+      }
+      return next
+    })
   }, [object])
 
   useEffect(() => {
@@ -147,7 +170,7 @@ export default function Home() {
 
   useEffect(() => {
     if (error) stop()
-  }, [error])
+  }, [error, stop])
 
   function setMessage(message: Partial<Message>, index?: number) {
     setMessages((previousMessages) => {
@@ -186,6 +209,14 @@ export default function Home() {
       content,
     })
 
+    // Trigger RSC streamUI in parallel for rich, incremental UI
+    void (actions as any).sendMessage({
+      text: chatInput,
+      template: currentTemplate,
+      model: currentModel as any,
+      config: languageModel,
+    })
+
     submit({
       userID: session?.user?.id,
       teamID: userTeam?.id,
@@ -217,10 +248,7 @@ export default function Home() {
     })
   }
 
-  function addMessage(message: Message) {
-    setMessages((previousMessages) => [...previousMessages, message])
-    return [...messages, message]
-  }
+  
 
   function handleSaveInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setChatInput(e.target.value)
@@ -305,6 +333,45 @@ export default function Home() {
             messages={messages}
             isLoading={isLoading}
             setCurrentPreview={setCurrentPreview}
+            inlineNode={
+              needsClarification && fragment?.clarification_form ? (
+                <DynamicClarificationForm
+                  form={{
+                    title: fragment.clarification_form.title || 'Clarification needed',
+                    description: fragment.clarification_form.description || '',
+                    context: fragment.clarification_form.context || '',
+                    questions: (fragment.clarification_form
+                      .questions as ClarificationQuestion[]) || [],
+                  } as ClarificationFormType}
+                  visible={true}
+                  isLoading={isLoading}
+                  onSubmit={(answers) => {
+                    const clarificationMessage: Message = {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: `Clarification answers: ${JSON.stringify(answers)}`,
+                        },
+                      ],
+                    }
+                    const updated = addMessage(clarificationMessage)
+                    submit({
+                      userID: session?.user?.id,
+                      teamID: userTeam?.id,
+                      messages: toAISDKMessages(updated),
+                      template: currentTemplate,
+                      model: currentModel,
+                      config: languageModel,
+                    })
+                    setNeedsClarification(false)
+                  }}
+                  onCancel={() => setNeedsClarification(false)}
+                />
+              ) : (
+                ui
+              )
+            }
           />
 
           

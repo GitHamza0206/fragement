@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { AI } from '@/app/actions/rsc-chat'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -27,7 +28,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <AI>{children}</AI>
           </ThemeProvider>
           <Toaster />
           <Analytics />

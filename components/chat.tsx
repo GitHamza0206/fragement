@@ -3,12 +3,13 @@ import { FragmentSchema } from '@/lib/schema'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
 import { LoaderIcon, Terminal } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, ReactNode } from 'react'
 
 export function Chat({
   messages,
   isLoading,
   setCurrentPreview,
+  inlineNode,
 }: {
   messages: Message[]
   isLoading: boolean
@@ -16,13 +17,14 @@ export function Chat({
     fragment: DeepPartial<FragmentSchema> | undefined
     result: ExecutionResult | undefined
   }) => void
+  inlineNode?: ReactNode
 }) {
   useEffect(() => {
     const chatContainer = document.getElementById('chat-container')
     if (chatContainer) {
       chatContainer.scrollTop = chatContainer.scrollHeight
     }
-  }, [JSON.stringify(messages)])
+  }, [JSON.stringify(messages), inlineNode ? 1 : 0])
 
   return (
     <div
@@ -74,6 +76,11 @@ export function Chat({
           )}
         </div>
       ))}
+      {inlineNode && (
+        <div className={`flex flex-col px-4 shadow-sm whitespace-pre-wrap bg-accent dark:bg-white/5 border text-accent-foreground dark:text-muted-foreground py-4 rounded-2xl gap-4 w-full font-serif`}>
+          {inlineNode}
+        </div>
+      )}
       {isLoading && (
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <LoaderIcon strokeWidth={2} className="animate-spin w-4 h-4" />
