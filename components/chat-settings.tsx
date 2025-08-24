@@ -94,7 +94,7 @@ export function ChatSettings({
             </span>
             <Input
               type="number"
-              defaultValue={languageModel.maxTokens}
+              defaultValue={languageModel.maxOutputTokens}
               min={50}
               max={10000}
               step={1}
@@ -102,7 +102,7 @@ export function ChatSettings({
               placeholder="Auto"
               onChange={(e) =>
                 onLanguageModelChange({
-                  maxTokens: parseFloat(e.target.value) || undefined,
+                  maxOutputTokens: parseFloat(e.target.value) || undefined,
                 })
               }
             />
@@ -201,5 +201,5 @@ export function ChatSettings({
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

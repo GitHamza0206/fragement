@@ -7,8 +7,10 @@ import {
 import ratelimit from '@/lib/ratelimit'
 import { clarificationFormSchema, planSchema, memoryUpdateSchema, createSurfaceSchema } from '@/lib/schema'
 import type { ClarificationForm, PlanSchema, MemoryUpdate, CreateSurface } from '@/lib/schema'
-import { streamText, LanguageModel, CoreMessage } from 'ai'
+import { streamText, ModelMessage, convertToModelMessages, UIMessage } from 'ai'
+import { LanguageModelV2 } from '@ai-sdk/provider'
 import { MainSystemPrompt } from '@/lib/prompt'
+
 export const maxDuration = 300
 
 const rateLimitMaxRequests = process.env.RATE_LIMIT_MAX_REQUESTS
@@ -26,7 +28,7 @@ export async function POST(req: Request) {
     model,
     config,
   }: {
-    messages: CoreMessage[]
+    messages: UIMessage[]
     userID: string | undefined
     teamID: string | undefined
     model: LLMModel
@@ -61,9 +63,9 @@ export async function POST(req: Request) {
 
   try {
     const result = await streamText({
-      model: modelClient as LanguageModel,
+      model: modelClient as LanguageModelV2,
       system: MainSystemPrompt(),
-      messages,
+      messages: convertToModelMessages(messages) as ModelMessage[],
       tools: {
         need_clarification: {
           description: 'Render a simple clarification form when the user query needs more clarification.',
