@@ -179,6 +179,7 @@ export default function Home() {
           <Chat
             isLoading={chatIsLoading}
             messages={messages}
+            append={append}
           />
 
           

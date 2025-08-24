@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       tools: {
         need_clarification: {
           description: 'Render a simple clarification form when the user query needs more clarification.',
-          parameters: clarificationFormSchema,
+          inputSchema: clarificationFormSchema,
           execute: async (form: ClarificationForm) => {
             return {
               type: 'clarification',
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
         },
         update_memory: {
           description: 'Save important user information for future sessions, with user consent.',
-          parameters: memoryUpdateSchema,
+          inputSchema: memoryUpdateSchema,
           execute: async (memoryData: MemoryUpdate) => {
             return {
               type: 'memory_update',
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
         },
         generate_plan: {
           description: 'Generate a structured learning plan when the AI has enough information to create modules and submodules.',
-          parameters: planSchema,
+          inputSchema: planSchema,
           execute: async (planData: PlanSchema) => {
             return {
               type: 'plan',
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
         },
         create_surface: {
           description: 'Create an interactive learning surface (sandbox, whiteboard, quiz, etc.) for hands-on learning experience.',
-          parameters: createSurfaceSchema,
+          inputSchema: createSurfaceSchema,
           execute: async (surfaceData: CreateSurface) => {
             // Handle sandbox surfaces by calling /api/sandbox
             if (surfaceData.surface_type === 'sandbox') {
@@ -156,7 +156,7 @@ export async function POST(req: Request) {
       ...modelParams,
     })
 
-    return result.toDataStreamResponse()
+    return result.toUIMessageStreamResponse();
     
   } catch (error: any) {
     const isRateLimitError =
