@@ -23,7 +23,11 @@ import { DeepPartial } from 'ai'
 import { usePostHog } from 'posthog-js/react'
 import { SetStateAction, useState } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
-import { useChat } from 'ai/react'
+import { useChat } from '@ai-sdk/react'
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
 
 export default function Home() {
   const [chatInput, setChatInput] = useLocalStorage('chat', '')
@@ -59,7 +63,7 @@ export default function Home() {
     (model) => model.id === languageModel.model,
   )
   
-  const { messages, input, handleInputChange, handleSubmit, isLoading: chatIsLoading, append } = useChat({
+  const transport = new DefaultChatTransport({ 
     api: '/api/chat',
     body: {
       userID: session?.user?.id,
@@ -69,6 +73,21 @@ export default function Home() {
     }
   })
 
+  const { messages, sendMessage, addToolResult, status } = useChat({
+    transport,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    async onToolCall({ toolCall }) {
+      // Tool execution is handled server-side, so we don't need to execute tools here
+      // Just add empty result to continue the flow
+      addToolResult({ 
+        tool: toolCall.toolName, 
+        toolCallId: toolCall.toolCallId, 
+        output: {} 
+      });
+    },
+  })
+  
+
   async function handleSubmitAuth(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
@@ -76,15 +95,14 @@ export default function Home() {
       return setAuthDialog(true)
     }
 
-    if (chatIsLoading) return
+    if (status === 'streaming') return
 
     // TODO: Handle file uploads for useChat if needed
     await toMessageImage(files)
 
-    // Use useChat's append function
-    await append({
-      role: 'user',
-      content: chatInput,
+    // Use useChat's sendMessage function
+    sendMessage({
+      text: chatInput,
     })
 
     setChatInput('')
@@ -173,13 +191,13 @@ export default function Home() {
             onSocialClick={handleSocialClick}
             onClear={handleClearChat}
             canClear={messages.length > 0}
-            canUndo={messages.length > 1 && !chatIsLoading}
+            canUndo={messages.length > 1 && status !== 'streaming'}
             onUndo={handleUndo}
           />
           <Chat
-            isLoading={chatIsLoading}
+            isLoading={status === 'streaming'}
             messages={messages}
-            append={append}
+            sendMessage={sendMessage}
           />
 
           
@@ -187,7 +205,7 @@ export default function Home() {
             retry={() => {}}
             isErrored={false}
             errorMessage={''}
-            isLoading={chatIsLoading}
+            isLoading={status === 'streaming'}
             isRateLimited={false}
             stop={() => {}}
             input={chatInput}
@@ -218,7 +236,7 @@ export default function Home() {
           accessToken={session?.access_token}
           selectedTab={currentTab}
           onSelectedTabChange={setCurrentTab}
-          isChatLoading={chatIsLoading}
+          isChatLoading={status === 'streaming'}
           isPreviewLoading={isPreviewLoading}
           fragment={fragment}
           result={result as ExecutionResult}

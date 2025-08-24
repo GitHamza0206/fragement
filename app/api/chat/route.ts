@@ -64,8 +64,6 @@ export async function POST(req: Request) {
       model: modelClient as LanguageModel,
       system: MainSystemPrompt(),
       messages,
-      maxRetries: 0, // do not retry on errors
-      maxSteps: 5,
       tools: {
         need_clarification: {
           description: 'Render a simple clarification form when the user query needs more clarification.',

@@ -10,12 +10,12 @@ export function Chat({
   isLoading,
   messages,
   inlineNode,
-  append,
+  sendMessage,
 }: {
   isLoading: boolean
   messages: Message[]
   inlineNode?: ReactNode
-  append: (message: any) => Promise<string | null | undefined>
+  sendMessage: (message?: any) => Promise<any>
 }) {
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
@@ -47,7 +47,7 @@ export function Chat({
             <StreamClarificationForm 
               key={toolInvocation.toolCallId}
               form={result.form}
-              append={append}
+              sendMessage={sendMessage}
             />
           )
         }

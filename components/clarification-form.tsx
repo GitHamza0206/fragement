@@ -3,18 +3,17 @@
 import { useState } from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import { ClarificationForm as ClarificationFormType, ClarificationQuestion } from '@/lib/schema'
-import { useChat } from 'ai/react'
-
-// Updated: client-side form that uses useChat's append
+// Updated: client-side form that uses sendMessage from parent
 export function StreamClarificationForm({
   form,
   isLoading = false,
+  sendMessage,
 }: {
   form: ClarificationFormType
   isLoading?: boolean
+  sendMessage: (message?: any) => Promise<any>
 }) {
   const [answers, setAnswers] = useState<Record<string, any>>({})
-  const { append } = useChat()
 
   const renderField = (question: ClarificationQuestion) => {
     const value = answers[question.id]
@@ -143,9 +142,8 @@ export function StreamClarificationForm({
             className="px-3 py-1.5 rounded-lg text-sm bg-primary/90 text-primary-foreground hover:bg-primary disabled:opacity-60"
             disabled={isLoading || !isValid}
             onClick={async () => {
-              await append({
-                role: 'user',
-                content: `Clarification answers: ${JSON.stringify(answers)}`,
+              sendMessage({
+                text: `Clarification answers: ${JSON.stringify(answers)}`,
               })
             }}
           >
