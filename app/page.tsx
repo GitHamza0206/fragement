@@ -217,7 +217,7 @@ export default function Home() {
           accessToken={session?.access_token}
           selectedTab={currentTab}
           onSelectedTabChange={setCurrentTab}
-          isChatLoading={isLoading}
+          isChatLoading={chatIsLoading}
           isPreviewLoading={isPreviewLoading}
           fragment={fragment}
           result={result as ExecutionResult}
