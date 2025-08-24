@@ -4,8 +4,9 @@ import { getModelClient, type LLMModel, type LLMModelConfig } from '@/lib/models
 import { StreamClarificationForm } from '@/components/clarification-form'
 import { PlanView } from '@/components/plan-view'
 import { MemoryUpdatePanel } from '@/components/memory-update-panel'
-import { clarificationFormSchema, planSchema, memoryUpdateSchema } from '@/lib/schema';
-import type { ClarificationForm, PlanSchema, MemoryUpdate } from '@/lib/schema';
+import { SurfaceCreator } from '@/components/surface-creator'
+import { clarificationFormSchema, planSchema, memoryUpdateSchema, createSurfaceSchema } from '@/lib/schema';
+import type { ClarificationForm, PlanSchema, MemoryUpdate, CreateSurface } from '@/lib/schema';
 import { MainSystemPrompt } from '@/lib/prompt';
 
 type ServerMessage = { role: 'user' | 'assistant'; content: string };
@@ -81,6 +82,14 @@ export async function sendMessage(input: SendMessageInput): Promise<UIMessage> {
         parameters: planSchema,
         generate: async (planData: PlanSchema) => {
           return <PlanView title={planData.title} description={planData.description} plan={planData.plan} />
+        },
+      },
+
+      create_surface: {
+        description: 'Create an interactive learning surface (sandbox, whiteboard, quiz, etc.) for hands-on learning experience.',
+        parameters: createSurfaceSchema,
+        generate: async (surfaceData: CreateSurface) => {
+          return <SurfaceCreator surface={surfaceData} />
         },
       }
     },

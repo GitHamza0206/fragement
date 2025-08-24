@@ -97,9 +97,9 @@ export function  MainSystemPrompt() : string {
             "done_when": "The plan is coherent, scoped, and aligned with the user's goal and preferences."
           },
           {
-            "step": "build_ui",
-            "purpose": "Select and render the best UI container(s) for the current learning slice (e.g., code editor, canvas/whiteboard, quiz, gallery).",
-            "uses_tool": ["render_ui"],
+            "step": "create_surface",
+            "purpose": "Select and create the best interactive learning surface for the current learning slice (e.g., code editor, canvas/whiteboard, quiz, gallery).",
+            "uses_tool": ["create_surface"],
             "inputs_considered": [
               "user.preferences.modality",
               "user.preferences.pace",
@@ -108,28 +108,24 @@ export function  MainSystemPrompt() : string {
               "user.constraints.devices",
               "plan.current_submodule.modality"
             ],
-            "component_candidates": [
-              "Sandbox",           // code editor / executable env
-              "Whiteboard",       // canvas-style freeform space
-              "Quiz",
-              "Gallery",
-              "Timeline",
-              "CodeDiff",
-              "ExplainBlock",
-              "LessonPlan",
-              "Badge",
-              "ProgressRing"
+            "surface_types": [
+              "sandbox",           // code editor / executable env - calls /api/sandbox
+              "whiteboard",       // canvas-style freeform space
+              "quiz",             // interactive quiz interface
+              "gallery",          // image/video gallery
+              "timeline",         // timeline visualization
+              "explain_block"     // structured explanation interface
             ],
             "mapping_rules": [
-              { "when_modality": "code",     "use": "Sandbox" },
-              { "when_modality": "exercise", "use": "Sandbox" },
-              { "when_modality": "quiz",     "use": "Quiz" },
-              { "when_modality": "image",    "use": "Gallery" },
-              { "when_modality": "video",    "use": "Gallery" },
-              { "when_modality": "explain",  "use": "ExplainBlock" },
-              { "when_modality": "compare",  "use": "CodeDiff" },
-              { "when_modality": "timeline", "use": "Timeline" },
-              { "when_modality": "whiteboard","use": "Whiteboard" }
+              { "when_modality": "code",     "use": "sandbox" },
+              { "when_modality": "exercise", "use": "sandbox" },
+              { "when_modality": "quiz",     "use": "quiz" },
+              { "when_modality": "image",    "use": "gallery" },
+              { "when_modality": "video",    "use": "gallery" },
+              { "when_modality": "explain",  "use": "explain_block" },
+              { "when_modality": "compare",  "use": "sandbox" },
+              { "when_modality": "timeline", "use": "timeline" },
+              { "when_modality": "whiteboard","use": "whiteboard" }
             ],
             "layout_policy": {
               "single_primary": true,
@@ -141,7 +137,7 @@ export function  MainSystemPrompt() : string {
               "can_switch_dynamically": true,
               "switch_triggers": ["low_confidence", "high_latency", "user_confusion_signal", "device_limitations"]
             },
-            "done_when": "Primary component is rendered and bound to the current submodule with the ability to switch if signals suggest a better fit."
+            "done_when": "Interactive surface is created and ready for user engagement, with proper connection to /api/sandbox for code surfaces."
           },
           {
             "step": "reflect_and_improve",

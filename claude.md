@@ -39,8 +39,7 @@ RAG stands for retrieval augmented generation. In simple terms, RAG is the proce
 
 ### Why is RAG important?
 
-While LLMs are powerful, the information they can reason on is restricted to the data they were trained on. This problem becomes apparent when 
-asking an LLM for information outside of their training data, like proprietary data or common knowledge that has occurred after the model’s training cutoff. RAG solves this problem by fetching information relevant to the prompt and then passing that to the model as context.
+While LLMs are powerful, the information they can reason on is restricted to the data they were trained on. This problem becomes apparent when asking an LLM for information outside of their training data, like proprietary data or common knowledge that has occurred after the model’s training cutoff. RAG solves this problem by fetching information relevant to the prompt and then passing that to the model as context.
 
 To illustrate with a basic example, imagine asking the model for your favorite food:
 
@@ -31674,3 +31673,5 @@ console.log(providerMetadata.myProvider.customMetric);
 ```
 
 This allows you to access provider-specific information while maintaining a consistent interface across different providers.
+
+- Never make asumptions on the ai sdk documentation, you must factcheck in the documentation provided in claude.md or check on internet

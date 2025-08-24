@@ -38,6 +38,15 @@ export const memoryUpdateSchema = z.object({
   context: z.string().describe('Brief explanation of why this information is important to remember'),
 })
 
+export const createSurfaceSchema = z.object({
+  surface_type: z.enum(['sandbox', 'whiteboard', 'quiz', 'gallery', 'timeline', 'explain_block']).describe('The type of learning surface to create'),
+  title: z.string().describe('Title for the learning surface'),
+  description: z.string().optional().describe('Brief description of what this surface will help the user learn'),
+  content: z.string().describe('The main content, code, or instructions for the surface'),
+  modality: z.enum(['code', 'exercise', 'quiz', 'image', 'video', 'explain', 'compare', 'timeline', 'whiteboard']).describe('Learning modality this surface supports'),
+  context: z.string().describe('Learning context explaining why this surface type was chosen'),
+})
+
 export const fragmentSchema = z.object({
   commentary: z.string().describe(`Describe what you're about to do and the steps you want to take for generating the course plan in great detail.`),
   template: z.enum(["streamlit-developer"]).describe('Name of the template used to generate the fragment.'),
@@ -73,4 +82,5 @@ export type ClarificationQuestion = z.infer<typeof clarificationQuestionSchema>
 export type ClarificationForm = z.infer<typeof clarificationFormSchema>
 export type PlanSchema = z.infer<typeof planSchema>
 export type MemoryUpdate = z.infer<typeof memoryUpdateSchema>
+export type CreateSurface = z.infer<typeof createSurfaceSchema>
 export type FragmentSchema = z.infer<typeof fragmentSchema>
