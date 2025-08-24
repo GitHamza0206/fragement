@@ -1,6 +1,6 @@
 import { LoaderIcon } from 'lucide-react'
 import type { UIMessage } from '@/app/actions/server.action.streamUI'
-import { useEffect, ReactNode } from 'react'
+import { useEffect, ReactNode, useRef } from 'react'
 import { useUIState } from 'ai/rsc'
 
 export function Chat({
@@ -11,18 +11,20 @@ export function Chat({
   inlineNode?: ReactNode
 }) {
   const [uiMessages] = useUIState()
+  const chatContainerRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
-    const chatContainer = document.getElementById('chat-container')
-    if (chatContainer) {
-      chatContainer.scrollTop = chatContainer.scrollHeight
-    }
-  }, [JSON.stringify(uiMessages), inlineNode ? 1 : 0])
+    chatContainerRef.current?.scrollTo({
+      top: chatContainerRef.current.scrollHeight,
+      behavior: 'smooth'
+    })
+  }, [uiMessages.length, inlineNode])
 
   const conversation = (uiMessages || []) as UIMessage[]
 
   return (
     <div
-      id="chat-container"
+      ref={chatContainerRef}
       className="flex flex-col pb-12 gap-2 overflow-y-auto max-h-full"
     >
       {conversation.map((message: UIMessage, index: number) => (
