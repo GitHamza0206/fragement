@@ -4,12 +4,11 @@ import {
   LLMModel,
   LLMModelConfig,
 } from '@/lib/models'
-import { toPrompt } from '@/lib/prompt'
 import ratelimit from '@/lib/ratelimit'
-import { fragmentSchema as schema } from '@/lib/schema'
-import { Templates } from '@/lib/templates'
-import { streamObject, LanguageModel, CoreMessage, streamText } from 'ai'
-
+import { clarificationFormSchema, planSchema, memoryUpdateSchema, createSurfaceSchema } from '@/lib/schema'
+import type { ClarificationForm, PlanSchema, MemoryUpdate, CreateSurface } from '@/lib/schema'
+import { streamText, LanguageModel, CoreMessage } from 'ai'
+import { MainSystemPrompt } from '@/lib/prompt'
 export const maxDuration = 300
 
 const rateLimitMaxRequests = process.env.RATE_LIMIT_MAX_REQUESTS
@@ -24,14 +23,12 @@ export async function POST(req: Request) {
     messages,
     userID,
     teamID,
-    template,
     model,
     config,
   }: {
     messages: CoreMessage[]
     userID: string | undefined
     teamID: string | undefined
-    template: Templates
     model: LLMModel
     config: LLMModelConfig
   } = await req.json()
@@ -57,24 +54,110 @@ export async function POST(req: Request) {
 
   console.log('userID', userID)
   console.log('teamID', teamID)
-  // console.log('template', template)
   console.log('model', model)
-  // console.log('config', config)
 
   const { model: modelNameString, apiKey: modelApiKey, ...modelParams } = config
   const modelClient = getModelClient(model, config)
 
   try {
-    const stream = await streamText({
+    const result = await streamText({
       model: modelClient as LanguageModel,
-      messages, 
+      system: MainSystemPrompt(),
+      messages,
       maxRetries: 0, // do not retry on errors
+      maxSteps: 5,
+      tools: {
+        need_clarification: {
+          description: 'Render a simple clarification form when the user query needs more clarification.',
+          parameters: clarificationFormSchema,
+          execute: async (form: ClarificationForm) => {
+            return {
+              type: 'clarification',
+              form,
+            }
+          },
+        },
+        update_memory: {
+          description: 'Save important user information for future sessions, with user consent.',
+          parameters: memoryUpdateSchema,
+          execute: async (memoryData: MemoryUpdate) => {
+            return {
+              type: 'memory_update',
+              data: memoryData,
+            }
+          },
+        },
+        generate_plan: {
+          description: 'Generate a structured learning plan when the AI has enough information to create modules and submodules.',
+          parameters: planSchema,
+          execute: async (planData: PlanSchema) => {
+            return {
+              type: 'plan',
+              data: planData,
+            }
+          },
+        },
+        create_surface: {
+          description: 'Create an interactive learning surface (sandbox, whiteboard, quiz, etc.) for hands-on learning experience.',
+          parameters: createSurfaceSchema,
+          execute: async (surfaceData: CreateSurface) => {
+            // Handle sandbox surfaces by calling /api/sandbox
+            if (surfaceData.surface_type === 'sandbox') {
+              try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/sandbox`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    surface_type: surfaceData.surface_type,
+                    title: surfaceData.title,
+                    content: surfaceData.content,
+                    modality: surfaceData.modality,
+                    description: surfaceData.description,
+                  }),
+                })
+
+                if (response.ok) {
+                  const sandboxData = await response.json()
+                  return {
+                    type: 'surface',
+                    data: surfaceData,
+                    sandboxResult: sandboxData,
+                    success: true,
+                  }
+                } else {
+                  return {
+                    type: 'surface',
+                    data: surfaceData,
+                    error: 'Failed to create sandbox',
+                    success: false,
+                  }
+                }
+              } catch (error) {
+                return {
+                  type: 'surface',
+                  data: surfaceData,
+                  error: error instanceof Error ? error.message : 'Unknown error',
+                  success: false,
+                }
+              }
+            }
+
+            // For other surface types
+            return {
+              type: 'surface',
+              data: surfaceData,
+              success: true,
+            }
+          },
+        },
+      },
       ...modelParams,
     })
 
-    console.log('stream', stream)
-
-    return stream.toTextStreamResponse()
+    return result.toDataStreamResponse()
+    
   } catch (error: any) {
     const isRateLimitError =
       error && (error.statusCode === 429 || error.message.includes('limit'))
@@ -82,7 +165,6 @@ export async function POST(req: Request) {
       error && (error.statusCode === 529 || error.statusCode === 503)
     const isAccessDeniedError =
       error && (error.statusCode === 403 || error.statusCode === 401)
-
 
     if (isRateLimitError) {
       return new Response(
@@ -110,7 +192,6 @@ export async function POST(req: Request) {
         },
       )
     }
-
 
     console.error('Error:', error)
 

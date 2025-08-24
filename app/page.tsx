@@ -23,7 +23,7 @@ import { DeepPartial } from 'ai'
 import { usePostHog } from 'posthog-js/react'
 import { SetStateAction, useState } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
-import { useActions, useUIState } from 'ai/rsc'
+import { useChat } from 'ai/react'
 
 export default function Home() {
   const [chatInput, setChatInput] = useLocalStorage('chat', '')
@@ -47,8 +47,6 @@ export default function Home() {
   const [isAuthDialogOpen, setAuthDialog] = useState(false)
   const [authView, setAuthView] = useState<ViewType>('sign_in')
   const { session, userTeam } = useAuth(setAuthDialog, setAuthView)
-  const { sendMessage } = useActions()
-  const [uiMessages, setUIState] = useUIState()
 
   const filteredModels = modelsList.models.filter((model) => {
     if (process.env.NEXT_PUBLIC_HIDE_LOCAL_MODELS) {
@@ -60,7 +58,16 @@ export default function Home() {
   const currentModel = filteredModels.find(
     (model) => model.id === languageModel.model,
   )
-  const [isLoading, setIsLoading] = useState(false)
+  
+  const { messages, input, handleInputChange, handleSubmit, isLoading: chatIsLoading, append } = useChat({
+    api: '/api/chat',
+    body: {
+      userID: session?.user?.id,
+      teamID: userTeam?.id,
+      model: currentModel,
+      config: languageModel,
+    }
+  })
 
   async function handleSubmitAuth(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -69,31 +76,20 @@ export default function Home() {
       return setAuthDialog(true)
     }
 
-    // toggle local loading if needed
-    if (isLoading) return
+    if (chatIsLoading) return
 
-    // TODO: Handle file uploads for streamUI if needed
+    // TODO: Handle file uploads for useChat if needed
     await toMessageImage(files)
 
-    // Render server-action UI stream (clarifications, assistant text UI)
-    try {
-      setIsLoading(true)
-      const ui = await sendMessage({
-        text: chatInput,
-        model: currentModel!,
-        config: languageModel,
-      })
-      setUIState((prev: any[]) => [...(prev ?? []), ui])
-    } catch (err) {
-      console.error('sendMessage error', err)
-    } finally {
-      setIsLoading(false)
-    }
+    // Use useChat's append function
+    await append({
+      role: 'user',
+      content: chatInput,
+    })
 
     setChatInput('')
     setFiles([])
     setCurrentTab('code')
-    // no local clarification toggle; handled by streamed UI
 
     posthog.capture('chat_submit', {
       template: selectedTemplate,
@@ -140,7 +136,7 @@ export default function Home() {
     setResult(undefined)
     setCurrentTab('code')
     setIsPreviewLoading(false)
-    setUIState([] as any)
+    // Note: useChat doesn't have a direct way to clear messages, would need to reload page or use a key prop
   }
 
   function setCurrentPreview(preview: {
@@ -152,7 +148,7 @@ export default function Home() {
   }
 
   function handleUndo() {
-    setUIState((prev: any[]) => prev.slice(0, -2))
+    // Note: useChat doesn't have a direct undo method, would need custom implementation
     setCurrentPreview({ fragment: undefined, result: undefined })
   }
 
@@ -176,12 +172,13 @@ export default function Home() {
             signOut={logout}
             onSocialClick={handleSocialClick}
             onClear={handleClearChat}
-            canClear={uiMessages.length > 0}
-            canUndo={uiMessages.length > 1 && !isLoading}
+            canClear={messages.length > 0}
+            canUndo={messages.length > 1 && !chatIsLoading}
             onUndo={handleUndo}
           />
           <Chat
-            isLoading={isLoading}
+            isLoading={chatIsLoading}
+            messages={messages}
           />
 
           
@@ -189,7 +186,7 @@ export default function Home() {
             retry={() => {}}
             isErrored={false}
             errorMessage={''}
-            isLoading={isLoading}
+            isLoading={chatIsLoading}
             isRateLimited={false}
             stop={() => {}}
             input={chatInput}

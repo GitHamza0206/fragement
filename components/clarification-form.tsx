@@ -3,24 +3,18 @@
 import { useState } from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import { ClarificationForm as ClarificationFormType, ClarificationQuestion } from '@/lib/schema'
-import { useActions, useUIState } from 'ai/rsc'
-import type { LLMModel, LLMModelConfig } from '@/lib/models'
+import { useChat } from 'ai/react'
 
-// New: client-side streamed form that calls the server action via useActions
+// Updated: client-side form that uses useChat's append
 export function StreamClarificationForm({
   form,
-  model,
-  config,
   isLoading = false,
 }: {
   form: ClarificationFormType
-  model: LLMModel
-  config: LLMModelConfig
   isLoading?: boolean
 }) {
   const [answers, setAnswers] = useState<Record<string, any>>({})
-  const { sendMessage } = useActions()
-  const [_, setUIState] = useUIState()
+  const { append } = useChat()
 
   const renderField = (question: ClarificationQuestion) => {
     const value = answers[question.id]
@@ -149,12 +143,10 @@ export function StreamClarificationForm({
             className="px-3 py-1.5 rounded-lg text-sm bg-primary/90 text-primary-foreground hover:bg-primary disabled:opacity-60"
             disabled={isLoading || !isValid}
             onClick={async () => {
-              const ui = await sendMessage({
-                text: `Clarification answers: ${JSON.stringify(answers)}`,
-                model,
-                config,
+              await append({
+                role: 'user',
+                content: `Clarification answers: ${JSON.stringify(answers)}`,
               })
-              setUIState((prev: any[]) => ([...(prev ?? []), ui]))
             }}
           >
             Submit Clarification
