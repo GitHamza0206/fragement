@@ -32,6 +32,12 @@ export const planSchema = z.object({
   })).describe('Array of learning modules with their submodules')
 })
 
+export const memoryUpdateSchema = z.object({
+  key: z.string().describe('The key to store this information under (e.g., "user.preferences.pace", "user.goals.current")'),
+  value: z.string().describe('The information to remember about the user'),
+  context: z.string().describe('Brief explanation of why this information is important to remember'),
+})
+
 export const fragmentSchema = z.object({
   commentary: z.string().describe(`Describe what you're about to do and the steps you want to take for generating the course plan in great detail.`),
   template: z.enum(["streamlit-developer"]).describe('Name of the template used to generate the fragment.'),
@@ -66,4 +72,5 @@ export const fragmentSchema = z.object({
 export type ClarificationQuestion = z.infer<typeof clarificationQuestionSchema>
 export type ClarificationForm = z.infer<typeof clarificationFormSchema>
 export type PlanSchema = z.infer<typeof planSchema>
+export type MemoryUpdate = z.infer<typeof memoryUpdateSchema>
 export type FragmentSchema = z.infer<typeof fragmentSchema>

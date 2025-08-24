@@ -1,11 +1,11 @@
 import { createAI, getMutableAIState, streamUI } from 'ai/rsc';
 import { ReactNode } from 'react';
-import { openai } from '@ai-sdk/openai';
 import { getModelClient, type LLMModel, type LLMModelConfig } from '@/lib/models';
 import { StreamClarificationForm } from '@/components/clarification-form'
 import { PlanView } from '@/components/plan-view'
-import { clarificationFormSchema, planSchema } from '@/lib/schema';
-import type { ClarificationForm, PlanSchema } from '@/lib/schema';
+import { MemoryUpdatePanel } from '@/components/memory-update-panel'
+import { clarificationFormSchema, planSchema, memoryUpdateSchema } from '@/lib/schema';
+import type { ClarificationForm, PlanSchema, MemoryUpdate } from '@/lib/schema';
 import { MainSystemPrompt } from '@/lib/prompt';
 
 type ServerMessage = { role: 'user' | 'assistant'; content: string };
@@ -65,6 +65,14 @@ export async function sendMessage(input: SendMessageInput): Promise<UIMessage> {
         parameters: clarificationFormSchema,
         generate: async (form: ClarificationForm) => {
           return <StreamClarificationForm form={form} model={input.model} config={input.config} />
+        },
+      },
+
+      update_memory: {
+        description: 'Save important user information for future sessions, with user consent.',
+        parameters: memoryUpdateSchema,
+        generate: async (memoryData: MemoryUpdate) => {
+          return <MemoryUpdatePanel memoryUpdate={memoryData} />
         },
       },
       
