@@ -230,7 +230,6 @@ export default function Home() {
             messages={messages}
             isLoading={isLoading}
             setCurrentPreview={setCurrentPreview}
-            uiMessages={uiMessages as any}
           />
 
           

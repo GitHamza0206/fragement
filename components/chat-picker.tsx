@@ -35,6 +35,7 @@ export function ChatPicker({
   useEffect(() => {
     const m = models.find((m) => m.id === languageModel.model) || models[0]
     if (m) setModelConfig({ model: m, config: languageModel })
+      
   }, [])
 
   return (

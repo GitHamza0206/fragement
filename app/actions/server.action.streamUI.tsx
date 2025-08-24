@@ -26,8 +26,6 @@ export type UIState = UIMessage[];
 
 export type SendMessageInput = {
   text: string;
-  model?: LLMModel;
-  config?: LLMModelConfig;
 };
 
 export async function setModelConfig(input: { model: LLMModel; config: LLMModelConfig }): Promise<void> {
@@ -49,15 +47,25 @@ export async function sendMessage(input: SendMessageInput): Promise<UIMessage> {
   const previous = (history.get() ?? { messages: [] }) as AIState;
   const nextState: AIState = {
     messages: [...(previous.messages ?? []), { role: 'user', content: input.text }],
-    model: input.model ?? previous.model,
-    config: input.config ?? previous.config,
+    model: previous.model,
+    config: previous.config,
   };
   history.update(nextState);
 
   const modelToUse = nextState.model;
   const configToUse = nextState.config;
   if (!modelToUse || !configToUse) {
-    throw new Error('Model/config not set. Provide them on the first call.');
+    const missingModelUI: UIMessage = {
+      id: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+      role: 'assistant',
+      display: (
+        <div className="mx-4 mb-2 rounded-2xl border border-primary/20 bg-accent/30 dark:bg-white/5 text-accent-foreground dark:text-muted-foreground ring-1 ring-primary/10 shadow-sm p-3">
+          <div className="text-sm font-medium text-foreground">Select a model first</div>
+          <div className="text-xs text-muted-foreground mt-1">Open the model picker and choose a provider/model to continue.</div>
+        </div>
+      ),
+    };
+    return missingModelUI;
   }
 
   const result = await streamUI({

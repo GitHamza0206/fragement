@@ -8,7 +8,7 @@ import { toPrompt } from '@/lib/prompt'
 import ratelimit from '@/lib/ratelimit'
 import { fragmentSchema as schema } from '@/lib/schema'
 import { Templates } from '@/lib/templates'
-import { streamObject, LanguageModel, CoreMessage } from 'ai'
+import { streamObject, LanguageModel, CoreMessage, streamText } from 'ai'
 
 export const maxDuration = 300
 
@@ -65,11 +65,9 @@ export async function POST(req: Request) {
   const modelClient = getModelClient(model, config)
 
   try {
-    const stream = await streamObject({
+    const stream = await streamText({
       model: modelClient as LanguageModel,
-      schema: schema,
-      system: toPrompt(template),
-      messages,
+      prompt: "respond in japanese" + {messages}, 
       maxRetries: 0, // do not retry on errors
       ...modelParams,
     })
