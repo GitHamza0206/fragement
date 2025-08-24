@@ -26,19 +26,10 @@ export type UIState = UIMessage[];
 
 export type SendMessageInput = {
   text: string;
+  model: LLMModel;
+  config: LLMModelConfig;
 };
 
-export async function setModelConfig(input: { model: LLMModel; config: LLMModelConfig }): Promise<void> {
-  'use server';
-
-  const history = getMutableAIState<typeof AI>();
-  const previous = (history.get() ?? { messages: [] }) as AIState;
-  history.update({
-    ...previous,
-    model: input.model,
-    config: input.config,
-  });
-}
 
 export async function sendMessage(input: SendMessageInput): Promise<UIMessage> {
   'use server';
@@ -47,29 +38,13 @@ export async function sendMessage(input: SendMessageInput): Promise<UIMessage> {
   const previous = (history.get() ?? { messages: [] }) as AIState;
   const nextState: AIState = {
     messages: [...(previous.messages ?? []), { role: 'user', content: input.text }],
-    model: previous.model,
-    config: previous.config,
+    model: input.model,
+    config: input.config,
   };
   history.update(nextState);
 
-  const modelToUse = nextState.model;
-  const configToUse = nextState.config;
-  if (!modelToUse || !configToUse) {
-    const missingModelUI: UIMessage = {
-      id: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2),
-      role: 'assistant',
-      display: (
-        <div className="mx-4 mb-2 rounded-2xl border border-primary/20 bg-accent/30 dark:bg-white/5 text-accent-foreground dark:text-muted-foreground ring-1 ring-primary/10 shadow-sm p-3">
-          <div className="text-sm font-medium text-foreground">Select a model first</div>
-          <div className="text-xs text-muted-foreground mt-1">Open the model picker and choose a provider/model to continue.</div>
-        </div>
-      ),
-    };
-    return missingModelUI;
-  }
-
   const result = await streamUI({
-    model: (getModelClient(modelToUse, configToUse) as any),
+    model: (getModelClient(input.model, input.config) as any),
     messages: nextState.messages,
     text: ({ content, done }: { content: string; done: boolean }) => {
       if (done) {
@@ -88,7 +63,7 @@ export async function sendMessage(input: SendMessageInput): Promise<UIMessage> {
         description: 'Render a simple clarification form  when the user query need more clarification.',
         parameters: clarificationFormSchema,
         generate: async (form: ClarificationForm) => {
-          return <StreamClarificationForm form={form} />
+          return <StreamClarificationForm form={form} model={input.model} config={input.config} />
         },
       },
     },
@@ -104,5 +79,5 @@ export async function sendMessage(input: SendMessageInput): Promise<UIMessage> {
 export const AI = createAI<AIState, UIState>({
   initialAIState: { messages: [] },
   initialUIState: [],
-  actions: { sendMessage, setModelConfig },
+  actions: { sendMessage },
 });

@@ -9,9 +9,13 @@ import type { LLMModel, LLMModelConfig } from '@/lib/models'
 // New: client-side streamed form that calls the server action via useActions
 export function StreamClarificationForm({
   form,
+  model,
+  config,
   isLoading = false,
 }: {
   form: ClarificationFormType
+  model: LLMModel
+  config: LLMModelConfig
   isLoading?: boolean
 }) {
   const [answers, setAnswers] = useState<Record<string, any>>({})
@@ -147,6 +151,8 @@ export function StreamClarificationForm({
             onClick={async () => {
               const ui = await sendMessage({
                 text: `Clarification answers: ${JSON.stringify(answers)}`,
+                model,
+                config,
               })
               setUIState((prev: any[]) => ([...(prev ?? []), ui]))
             }}

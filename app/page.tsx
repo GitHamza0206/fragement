@@ -47,7 +47,7 @@ export default function Home() {
   const [isAuthDialogOpen, setAuthDialog] = useState(false)
   const [authView, setAuthView] = useState<ViewType>('sign_in')
   const { session, userTeam } = useAuth(setAuthDialog, setAuthView)
-  const { sendMessage, setModelConfig } = useActions()
+  const { sendMessage } = useActions()
   const [uiMessages, setUIState] = useUIState()
 
   const filteredModels = modelsList.models.filter((model) => {
@@ -78,13 +78,10 @@ export default function Home() {
     // Render server-action UI stream (clarifications, assistant text UI)
     try {
       setIsLoading(true)
-      // Set model config first
-      await setModelConfig({
-        model: currentModel!,
-        config: languageModel, 
-      })
       const ui = await sendMessage({
         text: chatInput,
+        model: currentModel!,
+        config: languageModel,
       })
       setUIState((prev: any[]) => [...(prev ?? []), ui])
     } catch (err) {
