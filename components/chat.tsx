@@ -3,6 +3,7 @@ import { FragmentSchema } from '@/lib/schema'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
 import { LoaderIcon, Terminal } from 'lucide-react'
+import type { UIMessage } from '@/app/actions/server.action.streamUI'
 import { useEffect, ReactNode } from 'react'
 
 export function Chat({
@@ -10,6 +11,7 @@ export function Chat({
   isLoading,
   setCurrentPreview,
   inlineNode,
+  uiMessages,
 }: {
   messages: Message[]
   isLoading: boolean
@@ -18,6 +20,7 @@ export function Chat({
     result: ExecutionResult | undefined
   }) => void
   inlineNode?: ReactNode
+  uiMessages?: UIMessage[]
 }) {
   useEffect(() => {
     const chatContainer = document.getElementById('chat-container')
@@ -26,17 +29,30 @@ export function Chat({
     }
   }, [JSON.stringify(messages), inlineNode ? 1 : 0])
 
+  // Build interleaved list: after each user message, insert matching UI message if available
+  const interleaved: any[] = []
+  let uiIndex = 0
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    interleaved.push(msg)
+    if (msg.role === 'user' && uiMessages && uiMessages[uiIndex]) {
+      const ui = uiMessages[uiIndex]
+      interleaved.push({ __ui: ui.display, role: ui.role })
+      uiIndex += 1
+    }
+  }
+
   return (
     <div
       id="chat-container"
       className="flex flex-col pb-12 gap-2 overflow-y-auto max-h-full"
     >
-      {messages.map((message: Message, index: number) => (
+      {interleaved.map((message: any, index: number) => (
         <div
           className={`flex flex-col px-4 shadow-sm whitespace-pre-wrap ${message.role !== 'user' ? 'bg-accent dark:bg-white/5 border text-accent-foreground dark:text-muted-foreground py-4 rounded-2xl gap-4 w-full' : 'bg-gradient-to-b from-black/5 to-black/10 dark:from-black/30 dark:to-black/50 py-2 rounded-xl gap-2 w-fit'} font-serif`}
           key={index}
         >
-          {message.content.map((content, id) => {
+          {message.__ui ? message.__ui : message.content.map((content: any, id: number) => {
             if (content.type === 'text') {
               return content.text
             }

@@ -7,23 +7,23 @@ import { ChatInput } from '@/components/chat-input'
 import { ChatPicker } from '@/components/chat-picker'
 import { ChatSettings } from '@/components/chat-settings'
 import { NavBar } from '@/components/navbar'
-import { ClarificationForm, DynamicClarificationForm } from '@/components/clarification-form'
-import { PlanView } from '@/components/plan-view'
+// removed client-side clarification component in favor of server-streamed UI
+// import { PlanView } from '@/components/plan-view'
 import { Preview } from '@/components/preview'
 import { useAuth } from '@/lib/auth'
-import { Message, toAISDKMessages, toMessageImage } from '@/lib/messages'
+import { Message, toMessageImage } from '@/lib/messages'
 import { LLMModelConfig } from '@/lib/models'
 import modelsList from '@/lib/models.json'
-import { FragmentSchema, fragmentSchema as schema } from '@/lib/schema'
-import type { ClarificationForm as ClarificationFormType, ClarificationQuestion } from '@/lib/schema'
+import { FragmentSchema } from '@/lib/schema'
 import { supabase } from '@/lib/supabase'
 import templates, { TemplateId } from '@/lib/templates'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
-import { experimental_useObject as useObject } from 'ai/react'
+// removed useObject in favor of server action via useActions()
 import { usePostHog } from 'posthog-js/react'
 import { SetStateAction, useEffect, useState, useCallback } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
+import { useActions, useUIState } from 'ai/rsc'
 
 export default function Home() {
   const [chatInput, setChatInput] = useLocalStorage('chat', '')
@@ -42,15 +42,14 @@ export default function Home() {
 
   const [result, setResult] = useState<ExecutionResult>()
   const [messages, setMessages] = useState<Message[]>([])
-  const [fragment, setFragment] = useState<DeepPartial<FragmentSchema>>()
-  const [needsClarification, setNeedsClarification] = useState(false)
+  const [fragment, setFragment] = useState<DeepPartial<FragmentSchema> | undefined>(undefined)
   const [currentTab, setCurrentTab] = useState<'code' | 'fragment'>('code')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [isAuthDialogOpen, setAuthDialog] = useState(false)
   const [authView, setAuthView] = useState<ViewType>('sign_in')
-  const [isRateLimited, setIsRateLimited] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
   const { session, userTeam } = useAuth(setAuthDialog, setAuthView)
+  const { sendMessage } = useActions()
+  const [uiMessages, setUIState] = useUIState()
 
   const filteredModels = modelsList.models.filter((model) => {
     if (process.env.NEXT_PUBLIC_HIDE_LOCAL_MODELS) {
@@ -77,97 +76,11 @@ export default function Home() {
     return next
   }, [])
 
-  // RSC streaming removed
+  // consolidated: use server action via useActions() only
+  const [isLoading, setIsLoading] = useState(false)
+  const stop = () => {}
 
-  const { object, submit, isLoading, stop, error } = useObject({
-    api: '/api/chat',
-    schema,
-    onError: (error) => {
-      console.error('Error submitting request:', error)
-      if (error.message.includes('limit')) {
-        setIsRateLimited(true)
-      }
-
-      setErrorMessage(error.message)
-    },
-    onFinish: async ({ object: fragment, error }) => {
-      if (!error) {
-        // handle clarification or send it to /api/sandbox
-        console.log('fragment', fragment)
-        posthog.capture('fragment_generated', {
-          template: fragment?.template,
-        })
-
-        if (fragment?.needs_clarification) {
-          setNeedsClarification(true)
-          return 
-        }
-
-        setIsPreviewLoading(true)
-        const response = await fetch('/api/sandbox', {
-          method: 'POST',
-          body: JSON.stringify({
-            fragment,
-            userID: session?.user?.id,
-            teamID: userTeam?.id,
-            accessToken: session?.access_token,
-          }),
-        })
-
-        const result = await response.json()
-        console.log('result', result)
-        posthog.capture('sandbox_created', { url: result.url })
-
-        setResult(result)
-        setCurrentPreview({ fragment, result })
-        setMessage({ result })
-        setCurrentTab('fragment')
-        setIsPreviewLoading(false)
-      }
-    },
-  })
-
-  useEffect(() => {
-    if (!object) return
-
-    setFragment(object)
-    const content: Message['content'] = [
-      { type: 'text', text: object.commentary || '' },
-      //{ type: 'code', text: object.code || '' },
-    ]
-
-    setMessages((prev) => {
-      const last = prev[prev.length - 1]
-      if (!last || last.role !== 'assistant') {
-        return [
-          ...prev,
-          {
-            role: 'assistant',
-            content,
-            object,
-          },
-        ]
-      }
-      // update last assistant message in place
-      const next = [...prev]
-      next[next.length - 1] = {
-        ...next[next.length - 1],
-        content,
-        object,
-      }
-      return next
-    })
-  }, [object])
-
-  useEffect(() => {
-    if (object?.needs_clarification === true) {
-      setNeedsClarification(true)
-    }
-  }, [object?.needs_clarification])
-
-  useEffect(() => {
-    if (error) stop()
-  }, [error, stop])
+  // removed effects bound to useObject
 
   function setMessage(message: Partial<Message>, index?: number) {
     setMessages((previousMessages) => {
@@ -188,9 +101,8 @@ export default function Home() {
       return setAuthDialog(true)
     }
 
-    if (isLoading) {
-      stop()
-    }
+    // toggle local loading if needed
+    if (isLoading) return
 
     const content: Message['content'] = [{ type: 'text', text: chatInput }]
     const images = await toMessageImage(files)
@@ -206,19 +118,25 @@ export default function Home() {
       content,
     })
 
-    submit({
-      userID: session?.user?.id,
-      teamID: userTeam?.id,
-      messages: toAISDKMessages(updatedMessages),
-      template: currentTemplate,
-      model: currentModel,
-      config: languageModel,
-    })
+    // Render server-action UI stream (clarifications, assistant text UI)
+    try {
+      setIsLoading(true)
+      const ui = await sendMessage({
+        text: chatInput,
+        model: currentModel!,
+        config: languageModel, 
+      })
+      setUIState((prev: any[]) => [...(prev ?? []), ui])
+    } catch (err) {
+      console.error('sendMessage error', err)
+    } finally {
+      setIsLoading(false)
+    }
 
     setChatInput('')
     setFiles([])
     setCurrentTab('code')
-    setNeedsClarification(false)
+    // no local clarification toggle; handled by streamed UI
 
     posthog.capture('chat_submit', {
       template: selectedTemplate,
@@ -226,16 +144,7 @@ export default function Home() {
     })
   }
 
-  function retry() {
-    submit({
-      userID: session?.user?.id,
-      teamID: userTeam?.id,
-      messages: toAISDKMessages(messages),
-      template: currentTemplate,
-      model: currentModel,
-      config: languageModel,
-    })
-  }
+  function retry() {}
 
   
 
@@ -274,11 +183,10 @@ export default function Home() {
     setChatInput('')
     setFiles([])
     setMessages([])
-    setFragment(undefined)
     setResult(undefined)
     setCurrentTab('code')
     setIsPreviewLoading(false)
-    setNeedsClarification(false)
+    setUIState([] as any)
   }
 
   function setCurrentPreview(preview: {
@@ -322,60 +230,16 @@ export default function Home() {
             messages={messages}
             isLoading={isLoading}
             setCurrentPreview={setCurrentPreview}
-            inlineNode={
-              needsClarification && fragment?.clarification_form ? (
-                <DynamicClarificationForm
-                  form={{
-                    title: fragment.clarification_form.title || 'Clarification needed',
-                    description: fragment.clarification_form.description || '',
-                    context: fragment.clarification_form.context || '',
-                    questions: (fragment.clarification_form
-                      .questions as ClarificationQuestion[]) || [],
-                  } as ClarificationFormType}
-                  visible={true}
-                  isLoading={isLoading}
-                  onSubmit={(answers) => {
-                    const clarificationMessage: Message = {
-                      role: 'user',
-                      content: [
-                        {
-                          type: 'text',
-                          text: `Clarification answers: ${JSON.stringify(answers)}`,
-                        },
-                      ],
-                    }
-                    const updated = addMessage(clarificationMessage)
-                    submit({
-                      userID: session?.user?.id,
-                      teamID: userTeam?.id,
-                      messages: toAISDKMessages(updated),
-                      template: currentTemplate,
-                      model: currentModel,
-                      config: languageModel,
-                    })
-                    setNeedsClarification(false)
-                  }}
-                  onCancel={() => setNeedsClarification(false)}
-                />
-              ) : (
-                fragment?.plan ? (
-                  <PlanView
-                    title={fragment?.title as string}
-                    description={fragment?.description as string}
-                    plan={fragment?.plan as FragmentSchema['plan']}
-                  />
-                ) : undefined
-              )
-            }
+            uiMessages={uiMessages as any}
           />
 
           
           <ChatInput
             retry={retry}
-            isErrored={error !== undefined}
-            errorMessage={errorMessage}
+            isErrored={false}
+            errorMessage={''}
             isLoading={isLoading}
-            isRateLimited={isRateLimited}
+            isRateLimited={false}
             stop={stop}
             input={chatInput}
             handleInputChange={handleSaveInputChange}
