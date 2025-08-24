@@ -10,41 +10,20 @@ export function SurfaceCreator({
   surface: CreateSurface
 }) {
   const [isLoading, setIsLoading] = useState(false)
+  const [isDismissed, setIsDismissed] = useState(false)
 
-  const handleOpenSurface = async () => {
+  const handleOpenSurface = () => {
     setIsLoading(true)
-    try {
-      // Call /api/sandbox to open the code editor
-      const response = await fetch('/api/sandbox', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          surface_type: surface.surface_type,
-          title: surface.title,
-          content: surface.content,
-          modality: surface.modality,
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        // Handle successful surface creation
-        console.log('Surface created:', data)
-        
-        // If it's a sandbox, potentially open in a new window or iframe
-        if (surface.surface_type === 'sandbox' && data.url) {
-          window.open(data.url, '_blank')
-        }
-      } else {
-        console.error('Failed to create surface:', response.statusText)
-      }
-    } catch (error) {
-      console.error('Error creating surface:', error)
-    } finally {
+    // For non-sandbox surfaces, just show a placeholder action
+    // Real implementation would depend on the surface type
+    setTimeout(() => {
       setIsLoading(false)
-    }
+      setIsDismissed(true)
+    }, 1000)
+  }
+
+  if (isDismissed) {
+    return null
   }
 
   const getSurfaceIcon = () => {

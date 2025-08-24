@@ -1,5 +1,6 @@
 import { createAI, getMutableAIState, streamUI } from 'ai/rsc';
 import { ReactNode } from 'react';
+import { Code, X } from 'lucide-react';
 import { getModelClient, type LLMModel, type LLMModelConfig } from '@/lib/models';
 import { StreamClarificationForm } from '@/components/clarification-form'
 import { PlanView } from '@/components/plan-view'
@@ -89,6 +90,106 @@ export async function sendMessage(input: SendMessageInput): Promise<UIMessage> {
         description: 'Create an interactive learning surface (sandbox, whiteboard, quiz, etc.) for hands-on learning experience.',
         parameters: createSurfaceSchema,
         generate: async (surfaceData: CreateSurface) => {
+          // Handle sandbox surfaces by calling /api/sandbox
+          if (surfaceData.surface_type === 'sandbox') {
+            try {
+              // Make server-to-server API call
+              const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/sandbox`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  surface_type: surfaceData.surface_type,
+                  title: surfaceData.title,
+                  content: surfaceData.content,
+                  modality: surfaceData.modality,
+                  description: surfaceData.description,
+                }),
+              })
+
+              if (response.ok) {
+                const sandboxData = await response.json()
+                return (
+                  <div className="mx-4 mb-2 rounded-2xl border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800/30 ring-1 ring-green-200/20 shadow-sm">
+                    <div className="px-4 pt-3 pb-2 flex items-start gap-3">
+                      <div className="mt-0.5 text-green-600 dark:text-green-400">
+                        <Code className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-foreground mb-1">
+                          {surfaceData.title}
+                        </div>
+                        {surfaceData.description && (
+                          <div className="text-sm text-muted-foreground mb-2">
+                            {surfaceData.description}
+                          </div>
+                        )}
+                        <div className="text-xs text-green-600 dark:text-green-400 mb-2">
+                          ✅ Sandbox created successfully
+                        </div>
+                        {sandboxData.url && (
+                          <div className="bg-white/50 dark:bg-white/5 rounded-lg p-3 border border-green-200/30 dark:border-green-800/30 mb-3">
+                            <div className="text-xs font-medium mb-1 text-green-600 dark:text-green-400">
+                              SANDBOX URL
+                            </div>
+                            <a 
+                              href={sandboxData.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-foreground underline hover:no-underline"
+                            >
+                              {sandboxData.url}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              } else {
+                // API call failed, show error state
+                return (
+                  <div className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm">
+                    <div className="px-4 pt-3 pb-2 flex items-start gap-3">
+                      <div className="mt-0.5 text-red-600 dark:text-red-400">
+                        <X className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-foreground mb-1">
+                          Failed to create sandbox
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Unable to connect to sandbox API. Please try again.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+            } catch (error) {
+              // Network error, show error state
+              return (
+                <div className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm">
+                  <div className="px-4 pt-3 pb-2 flex items-start gap-3">
+                    <div className="mt-0.5 text-red-600 dark:text-red-400">
+                      <X className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-foreground mb-1">
+                        Connection error
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Could not reach sandbox service: {error instanceof Error ? error.message : 'Unknown error'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+          }
+
+          // For other surface types, use the original component
           return <SurfaceCreator surface={surfaceData} />
         },
       }
