@@ -109,7 +109,6 @@ export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps
                   const callId = part.toolCallId
                   switch (part.state) {
                     case 'input-streaming':
-                    case 'input-available':
                       return (
                         <div key={callId} className="mx-4 mb-2 rounded-2xl border border-gray-200 bg-gray-50/50 dark:bg-gray-950/20 dark:border-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200/20 shadow-sm p-4">
                           <div className="flex items-center gap-2">
@@ -118,14 +117,22 @@ export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps
                           </div>
                         </div>
                       )
-                    case 'output-available':
+                    case 'input-available':
                       return (
                         <PlanView
                           key={callId}
-                          title={(part as any).output?.data?.title}
-                          description={(part as any).output?.data?.description}
-                          plan={(part as any).output?.data?.plan}
+                          plan={(part as any).input}
+                          toolCallId={callId}
+                          addToolResult={addToolResult}
                         />
+                      )
+                    case 'output-available':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800/30 ring-1 ring-green-200/20 shadow-sm p-4">
+                          <div className="text-sm text-green-600 dark:text-green-400">
+                            ✅ Plan submitted successfully
+                          </div>
+                        </div>
                       )
                     case 'output-error':
                       return (
