@@ -11,10 +11,9 @@ interface ClarificationFormProps {
     toolCallId: string;
     result: any;
   }) => void
-  isLoading?: boolean
 }
 
-export const ClarificationForm = ({ form, toolCallId, addToolResult, isLoading = false }: ClarificationFormProps) => { 
+export const ClarificationForm = ({ form, toolCallId, addToolResult }: ClarificationFormProps) => { 
 
   const [answers, setAnswers] = useState<Record<string, any>>({})
 
@@ -30,7 +29,7 @@ export const ClarificationForm = ({ form, toolCallId, addToolResult, isLoading =
             className="text-normal px-3 py-2 resize-none ring-0 bg-white/90 dark:bg-white/5 border w-full m-0 outline-none rounded-lg text-foreground placeholder:text-muted-foreground"
             placeholder={question.placeholder || 'Enter your answer...'}
             value={value || ''}
-            disabled={isLoading}
+            disabled={false}
             onChange={(e) => setAnswers({ ...answers, [question.id]: e.target.value })}
           />
         )
@@ -44,7 +43,7 @@ export const ClarificationForm = ({ form, toolCallId, addToolResult, isLoading =
             value={value || ''}
             min={question.validation?.min}
             max={question.validation?.max}
-            disabled={isLoading}
+            disabled={false}
             onChange={(e) => setAnswers({ ...answers, [question.id]: e.target.value })}
           />
         )
@@ -54,7 +53,7 @@ export const ClarificationForm = ({ form, toolCallId, addToolResult, isLoading =
           <select
             className="text-normal px-3 py-2 bg-white/90 dark:bg-white/5 border w-full m-0 outline-none rounded-lg text-foreground"
             value={value || ''}
-            disabled={isLoading}
+            disabled={false}
             onChange={(e) => setAnswers({ ...answers, [question.id]: e.target.value })}
           >
             <option value="">Select an option...</option>
@@ -74,7 +73,7 @@ export const ClarificationForm = ({ form, toolCallId, addToolResult, isLoading =
                 <input
                   type="checkbox"
                   checked={(value || []).includes(option)}
-                  disabled={isLoading}
+                  disabled={false}
                   onChange={(e) => {
                     const current = value || []
                     if (e.target.checked) {
@@ -96,7 +95,7 @@ export const ClarificationForm = ({ form, toolCallId, addToolResult, isLoading =
             <input
               type="checkbox"
               checked={value || false}
-              disabled={isLoading}
+              disabled={false}
               onChange={(e) => setAnswers({ ...answers, [question.id]: e.target.checked })}
             />
             <span className="text-sm">Yes</span>
@@ -143,7 +142,7 @@ export const ClarificationForm = ({ form, toolCallId, addToolResult, isLoading =
           <button
             type="button"
             className="px-3 py-1.5 rounded-lg text-sm bg-primary/90 text-primary-foreground hover:bg-primary disabled:opacity-60"
-            disabled={isLoading || !isValid}
+            disabled={!isValid}
             onClick={() => {
               addToolResult({
                 toolCallId,

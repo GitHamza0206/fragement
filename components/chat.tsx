@@ -54,7 +54,6 @@ export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps
                           form={(part as any).input}
                           toolCallId={callId}
                           addToolResult={addToolResult}
-                          isLoading={status === 'streaming'}
                         />
                       )
                     case 'output-available':
