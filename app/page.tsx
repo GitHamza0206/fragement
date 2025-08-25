@@ -27,6 +27,7 @@ import { useChat } from '@ai-sdk/react'
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
+
 } from 'ai';
 
 export default function Home() {
@@ -73,20 +74,15 @@ export default function Home() {
     }
   })
 
-  const { messages, sendMessage, addToolResult, status } = useChat({
+  const { messages, status, sendMessage, addToolResult } = useChat({
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     async onToolCall({ toolCall }) {
-      // Tool execution is handled server-side, so we don't need to execute tools here
-      // Just add empty result to continue the flow
-      addToolResult({ 
-        tool: toolCall.toolName, 
-        toolCallId: toolCall.toolCallId, 
-        output: {} 
-      });
+      if (toolCall.dynamic) return;
+      // no client-side tools to auto-run here
     },
   })
-  
+
 
   async function handleSubmitAuth(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -95,15 +91,11 @@ export default function Home() {
       return setAuthDialog(true)
     }
 
-    if (status === 'streaming') return
-
     // TODO: Handle file uploads for useChat if needed
     await toMessageImage(files)
 
-    // Use useChat's sendMessage function
-    sendMessage({
-      text: chatInput,
-    })
+    // send via useChat
+    sendMessage({ text: chatInput })
 
     setChatInput('')
     setFiles([])
@@ -195,9 +187,10 @@ export default function Home() {
             onUndo={handleUndo}
           />
           <Chat
-            isLoading={status === 'streaming'}
             messages={messages}
+            status={status}
             sendMessage={sendMessage}
+            addToolResult={addToolResult}
           />
 
           

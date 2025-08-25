@@ -1,164 +1,22 @@
 import { LoaderIcon } from 'lucide-react'
-import { useEffect, ReactNode, useRef } from 'react'
+import { useRef } from 'react'
 import { UIMessage } from 'ai'
 import { StreamClarificationForm } from '@/components/clarification-form'
 import { MemoryUpdatePanel } from '@/components/memory-update-panel'
 import { PlanView } from '@/components/plan-view'
 import { SurfaceCreator } from '@/components/surface-creator'
 
-export function Chat({
-  isLoading,
-  messages,
-  inlineNode,
-  sendMessage,
-}: {
-  isLoading: boolean
+
+type ChatProps = { 
   messages: UIMessage[]
-  inlineNode?: ReactNode
+  status: string
   sendMessage: (message?: any) => Promise<any>
-}) {
-  const chatContainerRef = useRef<HTMLDivElement>(null)
+  addToolResult: (args: any) => void
+}
 
-  useEffect(() => {
-    chatContainerRef.current?.scrollTo({
-      top: chatContainerRef.current.scrollHeight,
-      behavior: 'smooth'
-    })
-  }, [messages.length, inlineNode])
+export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps) => {
+  const chatContainerRef = useRef<HTMLDivElement>(null) // used for autoscroll 
 
-  const renderToolInvocation = (toolInvocation: any) => {
-    const { toolName, result, state } = toolInvocation
-
-    if (state !== 'result' || !result) {
-      return (
-        <div key={toolInvocation.toolCallId} className="mx-4 mb-2 rounded-2xl border border-gray-200 bg-gray-50/50 dark:bg-gray-950/20 dark:border-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200/20 shadow-sm p-4">
-          <div className="flex items-center gap-2">
-            <LoaderIcon className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Processing {toolName}...</span>
-          </div>
-        </div>
-      )
-    }
-
-    switch (toolName) {
-      case 'need_clarification':
-        if (result.type === 'clarification') {
-          return (
-            <StreamClarificationForm 
-              key={toolInvocation.toolCallId}
-              form={result.form}
-              sendMessage={sendMessage}
-            />
-          )
-        }
-        break
-
-      case 'update_memory':
-        if (result.type === 'memory_update') {
-          return (
-            <MemoryUpdatePanel 
-              key={toolInvocation.toolCallId}
-              memoryUpdate={result.data}
-            />
-          )
-        }
-        break
-
-      case 'generate_plan':
-        if (result.type === 'plan') {
-          return (
-            <PlanView 
-              key={toolInvocation.toolCallId}
-              title={result.data.title}
-              description={result.data.description}
-              plan={result.data.plan}
-            />
-          )
-        }
-        break
-
-      case 'create_surface':
-        if (result.type === 'surface') {
-          if (result.success && result.sandboxResult) {
-            // Render success state for sandbox
-            return (
-              <div key={toolInvocation.toolCallId} className="mx-4 mb-2 rounded-2xl border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800/30 ring-1 ring-green-200/20 shadow-sm">
-                <div className="px-4 pt-3 pb-2 flex items-start gap-3">
-                  <div className="mt-0.5 text-green-600 dark:text-green-400">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-foreground mb-1">
-                      {result.data.title}
-                    </div>
-                    <div className="text-xs text-green-600 dark:text-green-400 mb-2">
-                      ✅ Sandbox created successfully
-                    </div>
-                    {result.sandboxResult.url && (
-                      <div className="bg-white/50 dark:bg-white/5 rounded-lg p-3 border border-green-200/30 dark:border-green-800/30">
-                        <div className="text-xs font-medium mb-1 text-green-600 dark:text-green-400">
-                          SANDBOX URL
-                        </div>
-                        <a 
-                          href={result.sandboxResult.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-sm text-foreground underline hover:no-underline"
-                        >
-                          {result.sandboxResult.url}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          } else if (!result.success) {
-            // Render error state
-            return (
-              <div key={toolInvocation.toolCallId} className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm">
-                <div className="px-4 pt-3 pb-2 flex items-start gap-3">
-                  <div className="mt-0.5 text-red-600 dark:text-red-400">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-foreground mb-1">
-                      Failed to create surface
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {result.error || 'Unknown error occurred'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          } else {
-            // Render other surface types
-            return (
-              <SurfaceCreator 
-                key={toolInvocation.toolCallId}
-                surface={result.data}
-              />
-            )
-          }
-        }
-        break
-
-      default:
-        return (
-          <div key={toolInvocation.toolCallId} className="mx-4 mb-2 p-4 border rounded-lg">
-            <div className="text-sm font-medium">Unknown tool: {toolName}</div>
-            <pre className="text-xs mt-2 text-gray-600">{JSON.stringify(result, null, 2)}</pre>
-          </div>
-        )
-    }
-
-    return null
-  }
 
   return (
     <div
@@ -171,30 +29,217 @@ export function Chat({
           key={message.id}
         >
           <div>
-            {message.parts?.map((part, index) => {
-              if (part.type === 'text') {
-                return <span key={index}>{part.text}</span>
+            {message.parts?.map((part) => {
+              switch (part.type) {
+                case 'text':
+                  return <span key={`text-${message.id}`}>{part.text}</span>
+
+                case 'tool-need_clarification': {
+                  const callId = part.toolCallId
+                  switch (part.state) {
+                    case 'input-streaming':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-gray-200 bg-gray-50/50 dark:bg-gray-950/20 dark:border-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200/20 shadow-sm p-4">
+                          <div className="flex items-center gap-2">
+                            <LoaderIcon className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Preparing clarification...</span>
+                          </div>
+                        </div>
+                      )
+                    case 'input-available':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-gray-200 bg-gray-50/50 dark:bg-gray-950/20 dark:border-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200/20 shadow-sm p-4">
+                          <div className="flex items-center gap-2">
+                            <LoaderIcon className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Loading clarification form...</span>
+                          </div>
+                        </div>
+                      )
+                    case 'output-available':
+                      return (
+                        <StreamClarificationForm
+                          key={callId}
+                          form={(part as any).output?.form}
+                          sendMessage={sendMessage}
+                        />
+                      )
+                    case 'output-error':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm p-4">
+                          <div className="text-sm text-red-600 dark:text-red-400">{part.errorText}</div>
+                        </div>
+                      )
+                  }
+                  break
+                }
+
+                case 'tool-update_memory': {
+                  const callId = part.toolCallId
+                  switch (part.state) {
+                    case 'input-streaming':
+                    case 'input-available':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-gray-200 bg-gray-50/50 dark:bg-gray-950/20 dark:border-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200/20 shadow-sm p-4">
+                          <div className="flex items-center gap-2">
+                            <LoaderIcon className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Preparing memory update...</span>
+                          </div>
+                        </div>
+                      )
+                    case 'output-available':
+                      return (
+                        <MemoryUpdatePanel
+                          key={callId}
+                          memoryUpdate={(part as any).output?.data}
+                        />
+                      )
+                    case 'output-error':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm p-4">
+                          <div className="text-sm text-red-600 dark:text-red-400">{part.errorText}</div>
+                        </div>
+                      )
+                  }
+                  break
+                }
+
+                case 'tool-generate_plan': {
+                  const callId = part.toolCallId
+                  switch (part.state) {
+                    case 'input-streaming':
+                    case 'input-available':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-gray-200 bg-gray-50/50 dark:bg-gray-950/20 dark:border-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200/20 shadow-sm p-4">
+                          <div className="flex items-center gap-2">
+                            <LoaderIcon className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Generating plan...</span>
+                          </div>
+                        </div>
+                      )
+                    case 'output-available':
+                      return (
+                        <PlanView
+                          key={callId}
+                          title={(part as any).output?.data?.title}
+                          description={(part as any).output?.data?.description}
+                          plan={(part as any).output?.data?.plan}
+                        />
+                      )
+                    case 'output-error':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm p-4">
+                          <div className="text-sm text-red-600 dark:text-red-400">{part.errorText}</div>
+                        </div>
+                      )
+                  }
+                  break
+                }
+
+                case 'tool-create_surface': {
+                  const callId = part.toolCallId
+                  switch (part.state) {
+                    case 'input-streaming':
+                    case 'input-available':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-gray-200 bg-gray-50/50 dark:bg-gray-950/20 dark:border-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200/20 shadow-sm p-4">
+                          <div className="flex items-center gap-2">
+                            <LoaderIcon className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Creating surface...</span>
+                          </div>
+                        </div>
+                      )
+                    case 'output-available': {
+                      const out = (part as any).output as any
+                      if (out?.success && out?.sandboxResult) {
+                        return (
+                          <div key={callId} className="mx-4 mb-2 rounded-2xl border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800/30 ring-1 ring-green-200/20 shadow-sm">
+                            <div className="px-4 pt-3 pb-2 flex items-start gap-3">
+                              <div className="mt-0.5 text-green-600 dark:text-green-400">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                </svg>
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-sm font-semibold text-foreground mb-1">
+                                  {out?.data?.title}
+                                </div>
+                                <div className="text-xs text-green-600 dark:text-green-400 mb-2">
+                                  ✅ Sandbox created successfully
+                                </div>
+                                {out?.sandboxResult?.url && (
+                                  <div className="bg-white/50 dark:bg-white/5 rounded-lg p-3 border border-green-200/30 dark:border-green-800/30">
+                                    <div className="text-xs font-medium mb-1 text-green-600 dark:text-green-400">
+                                      SANDBOX URL
+                                    </div>
+                                    <a 
+                                      href={out.sandboxResult.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-foreground underline hover:no-underline"
+                                    >
+                                      {out.sandboxResult.url}
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      } else if (out && out.success === false) {
+                        return (
+                          <div key={callId} className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm">
+                            <div className="px-4 pt-3 pb-2 flex items-start gap-3">
+                              <div className="mt-0.5 text-red-600 dark:text-red-400">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-sm font-semibold text-foreground mb-1">
+                                  Failed to create surface
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {out?.error || 'Unknown error occurred'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      }
+                      return (
+                        <SurfaceCreator 
+                          key={callId}
+                          surface={out?.data}
+                        />
+                      )
+                    }
+                    case 'output-error':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm p-4">
+                          <div className="text-sm text-red-600 dark:text-red-400">{part.errorText}</div>
+                        </div>
+                      )
+                  }
+                  break
+                }
+
+                default:
+                  if (typeof part.type === 'string' && part.type.startsWith('tool-')) {
+                    const callId = (part as any).toolCallId
+                    return (
+                      <div key={callId} className="mx-4 mb-2 p-4 border rounded-lg">
+                        <div className="text-sm font-medium">Unknown tool: {part.type.replace('tool-', '')}</div>
+                        <pre className="text-xs mt-2 text-gray-600">{JSON.stringify(part, null, 2)}</pre>
+                      </div>
+                    )
+                  }
+                  return null
               }
-              if (part.type.startsWith('tool-') && 'toolCallId' in part && 'state' in part) {
-                const toolName = part.type.replace('tool-', '')
-                return renderToolInvocation({
-                  toolCallId: part.toolCallId,
-                  toolName: toolName,
-                  result: 'output' in part ? part.output : undefined,
-                  state: part.state === 'output-available' ? 'result' : part.state
-                })
-              }
-              return null
             })}
           </div>
         </div>
       ))}
-      {inlineNode && (
-        <div className={`flex flex-col px-4 shadow-sm whitespace-pre-wrap bg-accent dark:bg-white/5 border text-accent-foreground dark:text-muted-foreground py-4 rounded-2xl gap-4 w-full font-serif`}>
-          {inlineNode}
-        </div>
-      )}
-      {isLoading && (
+      {status === 'streaming' && (
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <LoaderIcon strokeWidth={2} className="animate-spin w-4 h-4" />
           <span>Generating...</span>

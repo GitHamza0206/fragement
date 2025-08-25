@@ -1,4 +1,3 @@
-import { Templates, templatesToPrompt } from '@/lib/templates'
 
 
 export function  MainSystemPrompt() : string {
@@ -215,5 +214,5 @@ export function  MainSystemPrompt() : string {
 
     
   `
-  return jispStyle; 
+  return legacyStyle; 
 }
