@@ -76,18 +76,10 @@ export default function Home() {
 
   const { messages, status, sendMessage, addToolResult } = useChat({
     transport,
-    sendAutomaticallyWhen: (options) => {
-      console.log('sendAutomaticallyWhen check:', options)
-      const result = lastAssistantMessageIsCompleteWithToolCalls(options)
-      console.log('should send automatically:', result)
-      return result
-    },
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     async onToolCall({ toolCall }) {
       if (toolCall.dynamic) return;
       // no client-side tools to auto-run here
-    },
-    onFinish: (message) => {
-      console.log('Message finished:', message)
     },
   })
 
