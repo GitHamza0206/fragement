@@ -31,8 +31,8 @@ export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps
           <div>
             {message.parts?.map((part) => {
               switch (part.type) {
-                case 'text':
-                  return <span key={`text-${message.id}`}>{part.text}</span>
+                // case 'text':
+                //   return <span key={`text-${message.id}`}>{part.text}</span>
 
                 case 'tool-need_clarification': {
                   const callId = part.toolCallId
