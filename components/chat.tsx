@@ -12,7 +12,7 @@ export type ChatProps = {
   messages: UIMessage[]
   status: string
   sendMessage: (message?: any) => Promise<any>
-  addToolResult: (result: { toolCallId: string; result: any }) => void
+  addToolResult: (result: { tool: string; toolCallId: string; output: any }) => void
 }
 
 export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps) => {
