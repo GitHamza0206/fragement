@@ -4,14 +4,18 @@ import { useState } from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import { ClarificationForm as ClarificationFormType, ClarificationQuestion } from '@/lib/schema'
 
-interface StreamClarificationFormProps {
+interface ClarificationFormProps {
   form: ClarificationFormType
   toolCallId: string
-  addToolResult: (result: { tool: string; toolCallId: string; output: string }) => void
-  isLoading: boolean
+  addToolResult: (result: {
+    toolCallId: string;
+    result: any;
+  }) => void
+  isLoading?: boolean
 }
 
-export const StreamClarificationForm({ form, toolCallId, addToolResult, isLoading }: StreamClarificationFormProps) {
+export const ClarificationForm = ({ form, toolCallId, addToolResult, isLoading = false }: ClarificationFormProps) => { 
+
   const [answers, setAnswers] = useState<Record<string, any>>({})
 
   const renderField = (question: ClarificationQuestion) => {
@@ -142,9 +146,8 @@ export const StreamClarificationForm({ form, toolCallId, addToolResult, isLoadin
             disabled={isLoading || !isValid}
             onClick={() => {
               addToolResult({
-                tool: 'need_clarification',
-                toolCallId: toolCallId,
-                output: JSON.stringify(answers),
+                toolCallId,
+                result: answers,
               })
             }}
           >
