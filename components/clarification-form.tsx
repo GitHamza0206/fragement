@@ -144,6 +144,7 @@ export const ClarificationForm = ({ form, toolCallId, addToolResult }: Clarifica
             className="px-3 py-1.5 rounded-lg text-sm bg-primary/90 text-primary-foreground hover:bg-primary disabled:opacity-60"
             disabled={!isValid}
             onClick={() => {
+              console.log('Submitting clarification form:', { toolCallId, result: answers })
               addToolResult({
                 toolCallId,
                 result: answers,
