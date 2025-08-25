@@ -3,16 +3,15 @@
 import { useState } from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import { ClarificationForm as ClarificationFormType, ClarificationQuestion } from '@/lib/schema'
-// Updated: client-side form that uses sendMessage from parent
-export function StreamClarificationForm({
-  form,
-  isLoading = false,
-  sendMessage,
-}: {
+
+interface StreamClarificationFormProps {
   form: ClarificationFormType
-  isLoading?: boolean
-  sendMessage: (message?: any) => Promise<any>
-}) {
+  toolCallId: string
+  addToolResult: (result: { tool: string; toolCallId: string; output: string }) => void
+  isLoading: boolean
+}
+
+export const StreamClarificationForm({ form, toolCallId, addToolResult, isLoading }: StreamClarificationFormProps) {
   const [answers, setAnswers] = useState<Record<string, any>>({})
 
   const renderField = (question: ClarificationQuestion) => {
@@ -141,9 +140,11 @@ export function StreamClarificationForm({
             type="button"
             className="px-3 py-1.5 rounded-lg text-sm bg-primary/90 text-primary-foreground hover:bg-primary disabled:opacity-60"
             disabled={isLoading || !isValid}
-            onClick={async () => {
-              sendMessage({
-                text: `Clarification answers: ${JSON.stringify(answers)}`,
+            onClick={() => {
+              addToolResult({
+                tool: 'need_clarification',
+                toolCallId: toolCallId,
+                output: JSON.stringify(answers),
               })
             }}
           >
