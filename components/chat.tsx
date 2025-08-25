@@ -1,13 +1,14 @@
 import { LoaderIcon } from 'lucide-react'
 import { useRef } from 'react'
 import { UIMessage } from 'ai'
-import { StreamClarificationForm } from '@/components/clarification-form'
+import { ClarificationForm } from '@/components/clarification-form'
 import { MemoryUpdatePanel } from '@/components/memory-update-panel'
 import { PlanView } from '@/components/plan-view'
 import { SurfaceCreator } from '@/components/surface-creator'
+import { ClarificationForm as ClarificationFormType } from '@/lib/schema'
 
 
-type ChatProps = { 
+export type ChatProps = { 
   messages: UIMessage[]
   status: string
   sendMessage: (message?: any) => Promise<any>
@@ -31,8 +32,8 @@ export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps
           <div>
             {message.parts?.map((part) => {
               switch (part.type) {
-                // case 'text':
-                //   return <span key={`text-${message.id}`}>{part.text}</span>
+                case 'text':
+                  return <span key={`text-${message.id}`}>{part.text}</span>
 
                 case 'tool-need_clarification': {
                   const callId = part.toolCallId
@@ -48,26 +49,28 @@ export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps
                       )
                     case 'input-available':
                       return (
-                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-gray-200 bg-gray-50/50 dark:bg-gray-950/20 dark:border-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200/20 shadow-sm p-4">
-                          <div className="flex items-center gap-2">
-                            <LoaderIcon className="w-4 h-4 animate-spin" />
-                            <span className="text-sm">Loading clarification form...</span>
-                          </div>
-                        </div>
+                        <ClarificationForm
+                          key={callId}
+                          form={(part as any).input}
+                          toolCallId={callId}
+                          addToolResult={addToolResult}
+                          isLoading={status === 'streaming'}
+                        />
                       )
                     case 'output-available':
                       return (
-                        <StreamClarificationForm
-                          key={callId}
-                          form={(part as any).output?.form}
-                          sendMessage={sendMessage}
-                        />
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800/30 ring-1 ring-green-200/20 shadow-sm p-4">
+                          <div className="text-sm text-green-600 dark:text-green-400">
+                            ✅ Clarification submitted
+                          </div>
+                        </div>
                       )
                     case 'output-error':
                       return (
                         <div key={callId} className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm p-4">
                           <div className="text-sm text-red-600 dark:text-red-400">{part.errorText}</div>
                         </div>
+
                       )
                   }
                   break
