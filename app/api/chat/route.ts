@@ -70,32 +70,14 @@ export async function POST(req: Request) {
         need_clarification: {
           description: 'Render a simple clarification form when the user query needs more clarification.',
           inputSchema: clarificationFormSchema,
-          execute: async (form: ClarificationForm) => {
-            return {
-              type: 'clarification',
-              form,
-            }
-          },
         },
         update_memory: {
           description: 'Save important user information for future sessions, with user consent.',
           inputSchema: memoryUpdateSchema,
-          execute: async (memoryData: MemoryUpdate) => {
-            return {
-              type: 'memory_update',
-              data: memoryData,
-            }
-          },
         },
         generate_plan: {
           description: 'Generate a structured learning plan when the AI has enough information to create modules and submodules.',
           inputSchema: planSchema,
-          execute: async (planData: PlanSchema) => {
-            return {
-              type: 'plan',
-              data: planData,
-            }
-          },
         },
         create_surface: {
           description: 'Create an interactive learning surface (sandbox, whiteboard, quiz, etc.) for hands-on learning experience.',
