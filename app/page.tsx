@@ -172,9 +172,8 @@ export default function Home() {
           supabase={supabase}
         />
       )}
-      <div className="grid w-full md:grid-cols-2">
-        <div
-          className={`flex flex-col w-full max-h-full max-w-[800px] mx-auto px-4 overflow-auto ${fragment ? 'col-span-1' : 'col-span-2'}`}
+      <div className="grid w-full grid-cols-1 md:grid-cols-2">
+        <div className="flex flex-col w-full max-h-full max-w-[800px] mx-auto px-4 overflow-auto"
         >
           <NavBar
             session={session}

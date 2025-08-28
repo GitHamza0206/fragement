@@ -36,11 +36,8 @@ export function Preview({
   result?: ExecutionResult
   onClose: () => void
 }) {
-  if (!fragment) {
-    return null
-  }
-
   const isLinkAvailable = result?.template !== 'code-interpreter-v1'
+  const hasContent = fragment && Object.keys(fragment).length > 0
 
   return (
     <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-popover h-full w-full overflow-auto">
@@ -58,13 +55,13 @@ export function Preview({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground"
+                  className={`text-muted-foreground ${!hasContent ? 'invisible' : ''}`}
                   onClick={onClose}
                 >
                   <ChevronsRight className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Close sidebar</TooltipContent>
+              <TooltipContent>Clear preview</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <div className="flex justify-center">
@@ -109,25 +106,83 @@ export function Preview({
             </div>
           )}
         </div>
-        {fragment && (
-          <div className="overflow-y-auto w-full h-full">
-            <TabsContent value="code" className="h-full">
-              {fragment.code && fragment.file_path && (
-                <FragmentCode
-                  files={[
-                    {
-                      name: fragment.file_path,
-                      content: fragment.code,
-                    },
-                  ]}
-                />
-              )}
-            </TabsContent>
-            <TabsContent value="fragment" className="h-full">
-              {result && <FragmentPreview result={result as ExecutionResult} />}
-            </TabsContent>
-          </div>
-        )}
+        <div className="overflow-y-auto w-full h-full">
+          <TabsContent value="code" className="h-full">
+            {hasContent && fragment?.code && fragment?.file_path ? (
+              <FragmentCode
+                files={[
+                  {
+                    name: fragment.file_path,
+                    content: fragment.code,
+                  },
+                ]}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center p-8">
+                <div className="text-center space-y-4 max-w-md">
+                  <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto">
+                    <svg 
+                      className="w-8 h-8 text-muted-foreground" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" 
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-foreground mb-2">Code Preview</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Generated code will appear here when the AI creates fragments, surfaces, or other interactive elements.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="fragment" className="h-full">
+            {result ? (
+              <FragmentPreview result={result as ExecutionResult} />
+            ) : (
+              <div className="h-full flex items-center justify-center p-8">
+                <div className="text-center space-y-4 max-w-md">
+                  <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto">
+                    <svg 
+                      className="w-8 h-8 text-muted-foreground" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+                      />
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" 
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-foreground mb-2">Live Preview</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Interactive previews of generated applications, sandboxes, and learning surfaces will appear here.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   )
