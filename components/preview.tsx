@@ -126,7 +126,7 @@ export const Preview = ({
                                     <FragmentCode
                                       files={[
                                         {
-                                          name: out.data.title || 'surface.code',
+                                          name: 'main.go',
                                           content: out.data.content,
                                         },
                                       ]}

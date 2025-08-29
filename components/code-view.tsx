@@ -7,12 +7,33 @@ import 'prismjs/components/prism-jsx'
 import 'prismjs/components/prism-python'
 import 'prismjs/components/prism-tsx'
 import 'prismjs/components/prism-typescript'
+import 'prismjs/components/prism-go'
 import { useEffect } from 'react'
 
 export function CodeView({ code, lang }: { code: string; lang: string }) {
   useEffect(() => {
     Prism.highlightAll()
   }, [code])
+
+  // Normalize language - extract file extension and map to supported languages
+  const normalizedLang = lang.includes('.') 
+    ? lang.split('.').pop() || '' 
+    : lang;
+  
+  // Map common languages to Prism supported languages
+  const languageMap: Record<string, string> = {
+    'js': 'javascript',
+    'jsx': 'jsx', 
+    'ts': 'typescript',
+    'tsx': 'tsx',
+    'py': 'python',
+    'go': 'go',
+    'vue': 'javascript', // Vue files are mostly JavaScript
+    'html': 'html',
+    'css': 'css'
+  };
+  
+  const prismLang = languageMap[normalizedLang.toLowerCase()] || 'javascript';
 
   return (
     <pre
@@ -24,7 +45,7 @@ export function CodeView({ code, lang }: { code: string; lang: string }) {
         margin: 0,
       }}
     >
-      <code className={`language-${lang}`}>{code}</code>
+      <code className={`language-${prismLang}`}>{code}</code>
     </pre>
   )
 }
