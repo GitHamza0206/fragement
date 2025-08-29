@@ -7,7 +7,7 @@ import type { CreateSurface } from '@/lib/schema'
 export function SurfaceCreator({
   surface,
 }: {
-  surface: CreateSurface
+  surface: CreateSurface | undefined
 }) {
   const [isLoading, setIsLoading] = useState(false)
   const [isDismissed, setIsDismissed] = useState(false)
@@ -22,7 +22,7 @@ export function SurfaceCreator({
     }, 1000)
   }
 
-  if (isDismissed) {
+  if (isDismissed || !surface) {
     return null
   }
 
@@ -38,8 +38,8 @@ export function SurfaceCreator({
   }
 
   const getSurfaceColor = () => {
-    switch (surface.surface_type) {
-      case 'sandbox':
+    switch (surface.modality) {
+      case 'code':
         return 'border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800/30 text-green-600 dark:text-green-400'
       case 'whiteboard':
         return 'border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 dark:border-purple-800/30 text-purple-600 dark:text-purple-400'
