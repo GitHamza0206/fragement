@@ -201,7 +201,7 @@ export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps
                   break
                 }
 
-                case 'tool-create_surface': {
+                case 'tool-setup_surface': {
                   const callId = part.toolCallId
                   switch (part.state) {
                     case 'input-streaming':

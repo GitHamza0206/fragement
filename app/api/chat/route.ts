@@ -78,18 +78,18 @@ export async function POST(req: Request) {
       system: MainSystemPrompt(),
       messages: convertToModelMessages(messages) as ModelMessage[],
       tools: {
-        need_clarification: {
-          description: 'Render a simple clarification form when the user query needs more clarification.',
-          inputSchema: clarificationFormSchema,
-        },
-        update_memory: {
-          description: 'Save important user information for future sessions, with user consent.',
-          inputSchema: memoryUpdateSchema,
-        },
-        generate_plan: {
-          description: 'Generate a structured learning plan when the AI has enough information to create modules and submodules.',
-          inputSchema: planSchema,
-        },
+        // need_clarification: {
+        //   description: 'Render a simple clarification form when the user query needs more clarification.',
+        //   inputSchema: clarificationFormSchema,
+        // },
+        // update_memory: {
+        //   description: 'Save important user information for future sessions, with user consent.',
+        //   inputSchema: memoryUpdateSchema,
+        // },
+        // generate_plan: {
+        //   description: 'Generate a structured learning plan when the AI has enough information to create modules and submodules.',
+        //   inputSchema: planSchema,
+        // },
         conduct_research: tool({
           description: 'Conduct deep research to generate the course outline plan that will be used to draft the right exercises.',
           inputSchema: conductResearchSchema,

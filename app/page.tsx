@@ -155,6 +155,8 @@ export default function Home() {
   }) {
     setFragment(preview.fragment)
     setResult(preview.result)
+    // Ensure code tab stays active when new content arrives
+    setCurrentTab('code')
   }
 
   function handleUndo() {

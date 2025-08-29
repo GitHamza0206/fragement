@@ -54,6 +54,7 @@ export const conductResearchSchema = z.object({
 
 export type ConductResearch = z.infer<typeof conductResearchSchema>
 
+
 export const fragmentSchema = z.object({
   commentary: z.string().describe(`Describe what you're about to do and the steps you want to take for generating the course plan in great detail.`),
   template: z.enum(["streamlit-developer", "code-interpreter-v1"]).describe('Name of the template used to generate the fragment.'),
