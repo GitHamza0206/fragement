@@ -226,15 +226,13 @@ export default function Home() {
           </ChatInput>
         </div>
         <Preview
+          messages={messages}
+          status={status}
+          sendMessage={sendMessage}
+          addToolResult={addToolResult}
           teamID={userTeam?.id}
           accessToken={session?.access_token}
-          selectedTab={currentTab}
-          onSelectedTabChange={setCurrentTab}
-          isChatLoading={status === 'streaming'}
-          isPreviewLoading={isPreviewLoading}
-          fragment={fragment}
-          result={result as ExecutionResult}
-          onClose={() => setFragment(undefined)}
+
         />
       </div>
     </main>
