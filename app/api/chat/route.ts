@@ -5,11 +5,15 @@ import {
   LLMModelConfig,
 } from '@/lib/models'
 import ratelimit from '@/lib/ratelimit'
-import { clarificationFormSchema, planSchema, memoryUpdateSchema, createSurfaceSchema } from '@/lib/schema'
-import type { ClarificationForm, PlanSchema, MemoryUpdate, CreateSurface } from '@/lib/schema'
-import { streamText, ModelMessage, convertToModelMessages, UIMessage } from 'ai'
+import { clarificationFormSchema, planSchema, memoryUpdateSchema, createSurfaceSchema, conductResearchSchema } from '@/lib/schema'
+import type { ClarificationForm, PlanSchema, MemoryUpdate, CreateSurface, ConductResearch } from '@/lib/schema'
+import { streamText, ModelMessage, convertToModelMessages, UIMessage, tool, generateText } from 'ai'
 import { LanguageModelV2 } from '@ai-sdk/provider'
 import { MainSystemPrompt } from '@/lib/prompt'
+import { openai } from '@ai-sdk/openai'
+import { createMCPClient } from '@ai-sdk/mcp' 
+
+
 
 export const maxDuration = 300
 
@@ -79,61 +83,20 @@ export async function POST(req: Request) {
           description: 'Generate a structured learning plan when the AI has enough information to create modules and submodules.',
           inputSchema: planSchema,
         },
-        create_surface: {
-          description: 'Create an interactive learning surface (sandbox, whiteboard, quiz, etc.) for hands-on learning experience.',
-          inputSchema: createSurfaceSchema,
-          execute: async (surfaceData: CreateSurface) => {
-            // Handle sandbox surfaces by calling /api/sandbox
-            if (surfaceData.surface_type === 'sandbox') {
-              try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/sandbox`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    surface_type: surfaceData.surface_type,
-                    title: surfaceData.title,
-                    content: surfaceData.content,
-                    modality: surfaceData.modality,
-                    description: surfaceData.description,
-                  }),
-                })
-
-                if (response.ok) {
-                  const sandboxData = await response.json()
-                  return {
-                    type: 'surface',
-                    data: surfaceData,
-                    sandboxResult: sandboxData,
-                    success: true,
-                  }
-                } else {
-                  return {
-                    type: 'surface',
-                    data: surfaceData,
-                    error: 'Failed to create sandbox',
-                    success: false,
-                  }
-                }
-              } catch (error) {
-                return {
-                  type: 'surface',
-                  data: surfaceData,
-                  error: error instanceof Error ? error.message : 'Unknown error',
-                  success: false,
-                }
+        conduct_research: tool({
+          description: 'Conduct deep research to generate the course outline plan that will be used to draft the right exercises.',
+          inputSchema: conductResearchSchema,
+          execute: async (input: ConductResearch) => {
+            const response = await generateText({
+              model: openai("o3-deep-research-2025-06-26"), 
+              prompt: `You are a deep research assistant. Conduct thorough research on the given topic and return a detailed summary of findings. Topic: ${input.topic}`,
+              tools: {
+                "web_search_preview": tavilyTools.web_search_preview,
               }
-            }
-
-            // For other surface types
-            return {
-              type: 'surface',
-              data: surfaceData,
-              success: true,
-            }
+            })
+            return response.text
           },
-        },
+        }),
       },
       ...modelParams,
     })

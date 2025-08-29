@@ -47,6 +47,12 @@ export const createSurfaceSchema = z.object({
   context: z.string().describe('Learning context explaining why this surface type was chosen'),
 })
 
+export const conductResearchSchema = z.object({
+  topic: z.string().describe('Topic to conduct deep research on'),
+})
+
+export type ConductResearch = z.infer<typeof conductResearchSchema>
+
 export const fragmentSchema = z.object({
   commentary: z.string().describe(`Describe what you're about to do and the steps you want to take for generating the course plan in great detail.`),
   template: z.enum(["streamlit-developer"]).describe('Name of the template used to generate the fragment.'),

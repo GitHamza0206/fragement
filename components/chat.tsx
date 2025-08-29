@@ -5,6 +5,7 @@ import { ClarificationForm } from '@/components/clarification-form'
 import { MemoryUpdatePanel } from '@/components/memory-update-panel'
 import { PlanView } from '@/components/plan-view'
 import { SurfaceCreator } from '@/components/surface-creator'
+import { ResearchForm } from '@/components/research-form'
 import { ClarificationForm as ClarificationFormType } from '@/lib/schema'
 
 
@@ -132,6 +133,51 @@ export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps
                           <div className="text-sm text-green-600 dark:text-green-400">
                             ✅ Plan submitted successfully
                           </div>
+                        </div>
+                      )
+                    case 'output-error':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm p-4">
+                          <div className="text-sm text-red-600 dark:text-red-400">{part.errorText}</div>
+                        </div>
+                      )
+                  }
+                  break
+                }
+
+                case 'tool-conduct_research': {
+                  const callId = part.toolCallId
+                  switch (part.state) {
+                    case 'input-streaming':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-gray-200 bg-gray-50/50 dark:bg-gray-950/20 dark:border-gray-800/30 text-gray-600 dark:text-gray-400 ring-1 ring-gray-200/20 shadow-sm p-4">
+                          <div className="flex items-center gap-2">
+                            <LoaderIcon className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Preparing research form...</span>
+                          </div>
+                        </div>
+                      )
+                    case 'input-available':
+                      return (
+                        <ResearchForm
+                          key={callId}
+                          input={(part as any).input}
+                          toolCallId={callId}
+                          addToolResult={addToolResult}
+                        />
+                      )
+                    case 'output-streaming':
+                      console.log('Deep research streaming chunk:', (part as any).output)
+                      return null
+                    case 'output-available':
+                      return (
+                        <div key={callId} className="mx-4 mb-2 rounded-2xl border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800/30 ring-1 ring-green-200/20 shadow-sm p-4">
+                          <div className="text-sm text-green-600 dark:text-green-400">
+                            ✅ Research completed
+                          </div>
+                          <pre className="mt-2 whitespace-pre-wrap text-sm text-foreground">
+                            {(part as any).output}
+                          </pre>
                         </div>
                       )
                     case 'output-error':
