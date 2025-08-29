@@ -169,17 +169,28 @@ export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps
                     case 'output-streaming':
                       console.log('Deep research streaming chunk:', (part as any).output)
                       return null
-                    case 'output-available':
+                    case 'output-available': {
+                      const out = (part as any).output
+                      if (typeof out === 'object') {
+                        return (
+                          <div key={callId} className="mx-4 mb-2 rounded-2xl border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800/30 ring-1 ring-green-200/20 shadow-sm p-4">
+                            <div className="text-sm text-green-600 dark:text-green-400">
+                              ✅ Topic submitted
+                            </div>
+                          </div>
+                        )
+                      }
                       return (
                         <div key={callId} className="mx-4 mb-2 rounded-2xl border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800/30 ring-1 ring-green-200/20 shadow-sm p-4">
                           <div className="text-sm text-green-600 dark:text-green-400">
                             ✅ Research completed
                           </div>
                           <pre className="mt-2 whitespace-pre-wrap text-sm text-foreground">
-                            {(part as any).output}
+                            {out}
                           </pre>
                         </div>
                       )
+                    }
                     case 'output-error':
                       return (
                         <div key={callId} className="mx-4 mb-2 rounded-2xl border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30 ring-1 ring-red-200/20 shadow-sm p-4">

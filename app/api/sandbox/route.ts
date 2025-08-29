@@ -50,18 +50,19 @@ export async function POST(req: Request) {
 
   // Copy code to fs
   if (fragment.code && Array.isArray(fragment.code)) {
-    fragment.code.forEach(async (file) => {
+    for (const file of fragment.code) {
       await sbx.files.write(file.file_path, file.file_content)
       console.log(`Copied file to ${file.file_path} in ${sbx.sandboxId}`)
-    })
-  } else {
+    }
+  } else if (fragment.code) {
     await sbx.files.write(fragment.file_path, fragment.code)
     console.log(`Copied file to ${fragment.file_path} in ${sbx.sandboxId}`)
   }
 
   // Execute code or return a URL to the running sandbox
   if (fragment.template === 'code-interpreter-v1') {
-    const { logs, error, results } = await sbx.runCode(fragment.code || '')
+    const codeToRun = typeof fragment.code === 'string' ? fragment.code : ''
+    const { logs, error, results } = await sbx.runCode(codeToRun)
 
     return new Response(
       JSON.stringify({

@@ -7,11 +7,18 @@ import {
 import ratelimit from '@/lib/ratelimit'
 import { clarificationFormSchema, planSchema, memoryUpdateSchema, createSurfaceSchema, conductResearchSchema } from '@/lib/schema'
 import type { ClarificationForm, PlanSchema, MemoryUpdate, CreateSurface, ConductResearch } from '@/lib/schema'
-import { streamText, ModelMessage, convertToModelMessages, UIMessage, tool, generateText } from 'ai'
+//import { streamText, ModelMessage, convertToModelMessages, UIMessage, tool, generateText } from 'ai'
 import { LanguageModelV2 } from '@ai-sdk/provider'
-import { MainSystemPrompt } from '@/lib/prompt'
+import { DeepResearchPrompt, MainSystemPrompt } from '@/lib/prompt'
 import { openai } from '@ai-sdk/openai'
-import { createMCPClient } from '@ai-sdk/mcp' 
+import * as ai from 'ai';
+
+import { wrapAISDK } from 'langsmith/experimental/vercel';
+import {  ModelMessage, convertToModelMessages, UIMessage, tool } from 'ai'
+
+const { generateText, streamText, generateObject, streamObject,  } =
+  wrapAISDK(ai);
+
 
 
 
@@ -86,17 +93,33 @@ export async function POST(req: Request) {
         conduct_research: tool({
           description: 'Conduct deep research to generate the course outline plan that will be used to draft the right exercises.',
           inputSchema: conductResearchSchema,
-          execute: async (input: ConductResearch) => {
+          execute: async ({ topic }) => {
             const response = await generateText({
-              model: openai("o3-deep-research-2025-06-26"), 
-              prompt: `You are a deep research assistant. Conduct thorough research on the given topic and return a detailed summary of findings. Topic: ${input.topic}`,
+              model: openai("gpt-4o"), 
+              prompt: DeepResearchPrompt(topic),
               tools: {
-                "web_search_preview": tavilyTools.web_search_preview,
+                web_search_preview: openai.tools.webSearchPreview({}),
               }
             })
             return response.text
           },
         }),
+        setup_surface: tool({
+          description: 'use this tool when you want to setup the learning surface (code editor, quiz, whiteboard, gallery, timeline, explain_block)',
+          inputSchema: createSurfaceSchema,
+          execute: async ({ surface_type, title, description, content, modality, context, sandboxTemplate }) => {
+            return {
+              surface_type,
+              title,
+              description,
+              content,
+              modality,
+              context,
+              sandboxTemplate,
+            };
+          },
+        }),
+
       },
       ...modelParams,
     })
