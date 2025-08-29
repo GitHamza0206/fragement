@@ -165,9 +165,7 @@ export const Chat = ({ messages, status, sendMessage, addToolResult }: ChatProps
                           addToolResult={addToolResult}
                         />
                       )
-                    case 'output-streaming':
-                      console.log('Deep research streaming chunk:', (part as any).output)
-                      return null
+
                     case 'output-available': {
                       const out = (part as any).output
                       if (typeof out === 'object') {
