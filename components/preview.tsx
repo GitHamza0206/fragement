@@ -31,37 +31,7 @@ export const Preview = ({
   accessToken
 }: PreviewProps) => {
   const [selectedTab, setSelectedTab] = useState<'code' | 'fragment'>('code')
-  
-  // Extract fragment and result data from messages - similar to chat.tsx pattern
-  let fragment: any = null
-  let result: any = null
-  
-  // Process messages to find surface/fragment data
-  for (const message of messages) {
-    if (message.parts) {
-      for (const part of message.parts) {
-        // Handle setup_surface tool results
-        if (part.type === 'tool-setup_surface' && part.state === 'output-available') {
-          const output = (part as any).output
-          if (output?.data) {
-            fragment = output.data
-          }
-          if (output?.sandboxResult) {
-            result = output.sandboxResult
-          }
-        }
-      }
-    }
-  }
-  
-  const isLinkAvailable = result?.template !== 'code-interpreter-v1'
-  const hasContent = fragment && Object.keys(fragment).length > 0
   const isChatLoading = status === 'streaming'
-  const isPreviewLoading = false
-
-  const handleClose = () => {
-    // Clear preview functionality
-  }
 
   return (
     <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-popover h-full w-full overflow-auto">
@@ -109,7 +79,7 @@ export const Preview = ({
                       }
                       
                       // Show preview tabs for surface data
-                      if (out?.data || fragment) {
+                      if (out?.data) {
                         return (
                           <div key={callId} className="mx-4 mb-2">
                             <Tabs
@@ -132,24 +102,18 @@ export const Preview = ({
                                     Code
                                   </TabsTrigger>
                                   <TabsTrigger
-                                    disabled={!result}
+                                    disabled={!out?.sandboxResult}
                                     className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
                                     value="fragment"
                                   >
                                     Preview
-                                    {isPreviewLoading && (
-                                      <LoaderCircle
-                                        strokeWidth={3}
-                                        className="h-3 w-3 animate-spin"
-                                      />
-                                    )}
                                   </TabsTrigger>
                                 </TabsList>
                                 
-                                {result && isLinkAvailable && teamID && accessToken && (
+                                {out?.sandboxResult && out.sandboxResult.template !== 'code-interpreter-v1' && teamID && accessToken && (
                                   <DeployDialog
-                                    url={result.url!}
-                                    sbxId={result.sbxId!}
+                                    url={out.sandboxResult.url!}
+                                    sbxId={out.sandboxResult.sbxId!}
                                     teamID={teamID}
                                     accessToken={accessToken}
                                   />
@@ -158,12 +122,12 @@ export const Preview = ({
                               
                               <div className="border rounded-lg overflow-hidden">
                                 <TabsContent value="code" className="m-0 min-h-[300px]">
-                                  {hasContent && fragment?.content ? (
+                                  {out?.data?.content ? (
                                     <FragmentCode
                                       files={[
                                         {
-                                          name: fragment.title || 'surface.code',
-                                          content: fragment.content,
+                                          name: out.data.title || 'surface.code',
+                                          content: out.data.content,
                                         },
                                       ]}
                                     />
@@ -197,8 +161,8 @@ export const Preview = ({
                                 </TabsContent>
                                 
                                 <TabsContent value="fragment" className="m-0 min-h-[300px]">
-                                  {result ? (
-                                    <FragmentPreview result={result} />
+                                  {out?.sandboxResult ? (
+                                    <FragmentPreview result={out.sandboxResult} />
                                   ) : (
                                     <div className="h-[300px] flex items-center justify-center p-8">
                                       <div className="text-center space-y-4 max-w-md">
